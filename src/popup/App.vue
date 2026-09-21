@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HelloReply, PopupMessage, StartResult } from '@/shared/messages'
 import type { AppState } from '@/shared/types'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fromThisExtension, sendMessage } from '@/shared/messages'
 import { defaultLayout } from '@/shared/types'
 
@@ -14,6 +14,18 @@ const REASONS: Record<string, string> = {
   'blocked-page': 'Chrome will not let extensions capture this page.',
   'already-casting': 'This tab is already casting.',
 }
+
+/**
+ * The tab behind the popup, and whether it is already the source of a cast.
+ *
+ * `activeTabId` is the worker's answer to the same question `START_CAST` asks,
+ * and `HELLO` refreshes it before replying - so the button can be turned off
+ * before the click rather than explaining itself after it.
+ */
+const castingThisTab = computed(() => {
+  const tabId = state.value.activeTabId
+  return tabId != null && state.value.casts.some(c => c.sourceTabId === tabId)
+})
 
 onMounted(async () => {
   const reply = await sendMessage<HelloReply>({ to: 'sw', type: 'HELLO' })
@@ -46,12 +58,18 @@ function stopCast(castId: string) {
 </script>
 
 <template>
-  <button class="cast" :disabled="starting" @click="startCast">
-    <svg viewBox="0 0 16 16" aria-hidden="true">
+  <button
+    class="cast"
+    :class="{ 'cast--live': castingThisTab }"
+    :disabled="starting || castingThisTab"
+    @click="startCast"
+  >
+    <span v-if="castingThisTab" class="live" />
+    <svg v-else viewBox="0 0 16 16" aria-hidden="true">
       <rect x="2.2" y="3" width="11.6" height="8.4" rx="1.8" />
       <path d="M5.8 13.6h4.4" />
     </svg>
-    Cast this tab
+    {{ castingThisTab ? 'This tab is casting' : 'Cast this tab' }}
   </button>
 
   <p v-if="error" class="error">
@@ -76,6 +94,15 @@ function stopCast(castId: string) {
 </template>
 
 <style scoped>
+/*
+ * The bubble's chrome, in a panel: a white-washed plate on near-black, a
+ * hairline for every edge, and bare icons that come up to full strength under
+ * the pointer. Nothing here is filled with colour except what is telling you
+ * something - a cast is live, or a cast failed.
+ */
+
+/* The tile's corner, not the bar's pill: this button is as wide as the panel
+   it sits in, and a pill inside square edges reads as a mistake. */
 .cast {
   display: flex;
   gap: 8px;
@@ -86,20 +113,33 @@ function stopCast(castId: string) {
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   cursor: pointer;
-  background: #2f6df6;
+  background: var(--plate);
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: background-color 0.16s var(--ease);
 }
 
 .cast:hover:not(:disabled) {
-  background: #3d78ff;
+  background: var(--plate-lit);
 }
 
 .cast:disabled {
   cursor: default;
   opacity: 0.55;
+}
+
+/* Already live in this tab. That is a state, not an offer: the plate goes
+   quiet, the label with it, and the same green dot the list marks a cast with
+   says why the button is not asking for a click. */
+.cast--live,
+.cast--live:disabled {
+  color: var(--ink-dim);
+  background: var(--plate-quiet);
+  box-shadow: inset 0 0 0 1px var(--hairline-soft);
+  opacity: 1;
 }
 
 .cast svg {
@@ -115,7 +155,7 @@ function stopCast(castId: string) {
 .error {
   margin: 10px 0 0;
   font-size: 12px;
-  color: #ff9b9b;
+  color: var(--alarm);
 }
 
 .casts {
@@ -129,7 +169,7 @@ function stopCast(castId: string) {
   gap: 9px;
   align-items: center;
   padding: 8px 0;
-  border-top: 1px solid rgb(255 255 255 / 0.07);
+  border-top: 1px solid var(--hairline-soft);
 }
 
 .casts li:first-child {
@@ -141,7 +181,7 @@ function stopCast(castId: string) {
   flex: none;
   width: 6px;
   height: 6px;
-  background: #43d17f;
+  background: var(--live);
   border-radius: 50%;
 }
 
@@ -149,41 +189,47 @@ function stopCast(castId: string) {
   flex: 1;
   overflow: hidden;
   font-size: 12px;
-  color: #c9ced8;
+  font-weight: 500;
+  color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* A bare icon, sized and weighted like every button on the bubble. */
 .stop {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  color: #8b929e;
+  color: var(--ink);
   cursor: pointer;
   background: none;
   border: none;
+  opacity: 0.85;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 .stop:hover {
-  color: #ff9b9b;
+  opacity: 1;
+  transform: scale(1.12);
 }
 
 .stop svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   fill: none;
   stroke: currentcolor;
-  stroke-width: 1.7;
+  stroke-width: 1.6;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .empty {
   margin: 12px 0 0;
   font-size: 12px;
   line-height: 1.5;
-  color: #79808c;
+  color: var(--ink-dim);
 }
 </style>

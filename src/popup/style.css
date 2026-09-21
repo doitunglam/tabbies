@@ -1,17 +1,49 @@
 :root {
+  /* Lifted from the bubble's own stylesheet, `content/overlay.css`, so the
+     panel that starts a cast is cut from the same cloth as the thing it
+     starts: one near-black surface, plates washed on in white rather than
+     filled with colour, hairline edges, and bare icons over both. */
+  --surface: #101214;
+  --backdrop: #08090b;
+  --plate: rgb(255 255 255 / 0.07);
+  --plate-lit: rgb(255 255 255 / 0.12);
+  --plate-quiet: rgb(255 255 255 / 0.04);
+  /* The tile's inset edge, and the line between two rows. */
+  --hairline: rgb(255 255 255 / 0.12);
+  --hairline-soft: rgb(255 255 255 / 0.09);
+  --ink: #fff;
+  --ink-dim: #9aa1ad;
+  --live: #43d17f;
+  --alarm: #ff9b9b;
+  /* The curve the bubble docks and fans on. */
+  --ease: cubic-bezier(0.2, 0.9, 0.25, 1);
+
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
   line-height: 1.4;
   color-scheme: dark;
-  color: #e6e8ee;
-  background-color: #17191d;
+  color: var(--ink);
+  background-color: var(--surface);
 }
 
+/*
+ * Chrome paints the popup window's own corners, and a page cannot round them.
+ * What it can do is stop pretending the window is the panel: the backdrop goes
+ * a shade deeper than the surface, and the panel itself becomes one of the
+ * bubble's cards - same 12px corner, same hairline edge, same shadow under it.
+ */
 body {
   width: 300px;
   margin: 0;
+  background: var(--backdrop);
 }
 
 #app {
+  margin: 6px;
   padding: 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.35),
+    inset 0 0 0 1px var(--hairline);
 }
