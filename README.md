@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/logo.png" width="72" alt="" />
+  <img src="icons/icon128.png" width="72" alt="" />
   <h1>Tabbies</h1>
   <p>Watch one tab as a floating bubble inside every <em>other</em> tab.</p>
 </div>

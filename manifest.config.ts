@@ -7,11 +7,17 @@ export default defineManifest({
   description: pkg.description,
   version: pkg.version,
   icons: {
-    48: 'public/logo.png',
+    16: 'icons/icon16.png',
+    32: 'icons/icon32.png',
+    48: 'icons/icon48.png',
+    128: 'icons/icon128.png',
   },
   action: {
+    // The toolbar draws at 16, and at 32 on a hidpi screen; the rest of the
+    // set above covers the extensions page, the management list and the store.
     default_icon: {
-      48: 'public/logo.png',
+      16: 'icons/icon16.png',
+      32: 'icons/icon32.png',
     },
     default_popup: 'src/popup/index.html',
   },
