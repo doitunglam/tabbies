@@ -34,7 +34,7 @@
 .tb-card {
   position: absolute;
   inset: 0;
-  transform-origin: center;
+  transform-origin: 50% 85%;
   transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.25, 1);
   cursor: grab;
 }
@@ -43,8 +43,16 @@
   cursor: grabbing;
 }
 
+/* Cards further down the pile fall back out of focus. */
 .tb-card--behind {
-  filter: brightness(0.7);
+  filter: brightness(0.62) saturate(0.85) blur(0.6px);
+}
+
+/* Their chrome belongs to the card in front; a buried button is not clickable. */
+.tb-card--behind .tb-controls,
+.tb-card--behind .tb-actions {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------ expanded */
@@ -84,9 +92,18 @@
   overflow: hidden;
   border-radius: 12px;
   background: #101214;
+  /* The inset hairline is the card's edge: it is what separates one card in
+     the pile from the next. */
   box-shadow:
     0 10px 30px rgb(0 0 0 / 0.35),
-    0 2px 6px rgb(0 0 0 / 0.25);
+    0 2px 6px rgb(0 0 0 / 0.25),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.tb-card--behind .tb-tile {
+  box-shadow:
+    0 8px 18px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px rgb(255 255 255 / 0.16);
 }
 
 .tb-video {
@@ -130,6 +147,7 @@
   flex: 1;
   overflow: hidden;
   font-size: 11px;
+  font-weight: 600;
   color: #fff;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
   text-overflow: ellipsis;

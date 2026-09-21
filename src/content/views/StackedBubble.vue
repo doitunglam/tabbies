@@ -19,13 +19,25 @@ defineEmits<{
   close: [cast: Cast]
 }>()
 
-/** Cards behind the active one peek out towards the middle of the screen. */
+/**
+ * Cards behind the active one fan out towards the middle of the screen like a
+ * pile knocked slightly out of true: each sits a little lower, a little
+ * smaller and a little more turned than the one in front of it.
+ */
+const SHIFT_X = 7
+const SHIFT_Y = 5
+const TILT = 2
+
 function cardStyle(index: number) {
   const depth = props.cards.length - 1 - index
   const direction = props.side === 'left' ? 1 : -1
   return {
     zIndex: String(index),
-    transform: `translate(${depth * 10 * direction}px, ${depth * -8}px) scale(${1 - depth * 0.05})`,
+    transform: [
+      `translate(${depth * SHIFT_X * direction}px, ${depth * SHIFT_Y}px)`,
+      `rotate(${depth * TILT * direction}deg)`,
+      `scale(${1 - depth * 0.04})`,
+    ].join(' '),
   }
 }
 </script>
