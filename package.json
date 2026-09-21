@@ -1,12 +1,30 @@
 {
   "name": "tabbies",
+  "displayName": "Tabbies",
   "type": "module",
   "version": "1.0.0",
   "private": true,
-  "description": "A extensions to make you view other tabs as a popup",
+  "description": "Watch one tab as a floating bubble inside every other tab.",
+  "license": "MIT",
+  "homepage": "https://github.com/doitunglam/tabbies#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doitunglam/tabbies.git"
+  },
+  "bugs": {
+    "url": "https://github.com/doitunglam/tabbies/issues"
+  },
+  "keywords": [
+    "chrome-extension",
+    "picture-in-picture",
+    "tabcapture",
+    "webrtc",
+    "manifest-v3"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build"
+    "build": "vue-tsc -b && vite build",
+    "typecheck": "vue-tsc -b --force"
   },
   "dependencies": {
     "vue": "^3.5.30"
