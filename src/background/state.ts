@@ -14,7 +14,7 @@ const STORAGE_KEY = 'tabbies:state'
 export async function getState(): Promise<AppState> {
   const stored = await chrome.storage.session.get(STORAGE_KEY)
   const state = stored[STORAGE_KEY] as AppState | undefined
-  return state ?? { casts: [], layout: { ...DEFAULT_LAYOUT } }
+  return state ?? { casts: [], layout: { ...DEFAULT_LAYOUT }, activeTabId: null }
 }
 
 export async function clearState(): Promise<void> {
@@ -22,14 +22,27 @@ export async function clearState(): Promise<void> {
 }
 
 /** Read, change, persist and broadcast in one step. */
-export async function mutate(fn: (state: AppState) => void): Promise<AppState> {
+export function mutate(fn: (state: AppState) => void): Promise<AppState> {
+  return apply(fn, true)
+}
+
+/**
+ * Same as `mutate`, without the broadcast - for bookkeeping no overlay can act
+ * on, which would otherwise message every open tab for nothing.
+ */
+export function mutateQuietly(fn: (state: AppState) => void): Promise<AppState> {
+  return apply(fn, false)
+}
+
+async function apply(fn: (state: AppState) => void, announce: boolean): Promise<AppState> {
   const state = await getState()
   fn(state)
   if (!state.casts.some(c => c.id === state.layout.activeCastId))
     state.layout.activeCastId = state.casts[0]?.id ?? null
 
   await chrome.storage.session.set({ [STORAGE_KEY]: state })
-  await broadcast(state)
+  if (announce)
+    await broadcast(state)
   return state
 }
 

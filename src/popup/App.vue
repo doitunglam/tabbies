@@ -6,7 +6,7 @@ import { sendMessage } from '@/shared/messages'
 import { DEFAULT_LAYOUT } from '@/shared/types'
 import type { StartResult } from '@/background/casts'
 
-const state = ref<AppState>({ casts: [], layout: { ...DEFAULT_LAYOUT } })
+const state = ref<AppState>({ casts: [], layout: { ...DEFAULT_LAYOUT }, activeTabId: null })
 const starting = ref(false)
 const error = ref<string | null>(null)
 

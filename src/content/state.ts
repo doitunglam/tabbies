@@ -8,31 +8,30 @@ export const state = reactive({
   casts: [] as Cast[],
   layout: { ...DEFAULT_LAYOUT } as LayoutState,
   tabId: null as number | null,
-  /** Whether the user can actually see this tab right now. */
-  visible: !document.hidden,
+  /** The tab the user is looking at, as reported by the service worker. */
+  activeTabId: null as number | null,
 })
 
-/** Publish this tab's visibility; the overlay and the viewer both key off it. */
-export function watchVisibility(): void {
-  document.addEventListener('visibilitychange', () => {
-    state.visible = !document.hidden
-  })
-}
+/** This tab is the one in front of the user. */
+export const isActive = computed(() => state.tabId != null && state.tabId === state.activeTabId)
 
 /** This tab is itself one of the tabs being cast. */
 const casting = computed(() => state.casts.some(c => c.sourceTabId === state.tabId))
 
 /**
  * Every cast except the one captured from this very tab - and nothing at all
- * while a casting tab is in the background.
+ * while a casting tab is not the one in front of the user.
  *
  * A tab keeps being captured after you leave it, so any bubble drawn there
  * reappears inside the other tabs' streams. With two tabs casting each other
- * that nests forever, a hall of mirrors. Only the tab in front of the user
- * draws bubbles, so the cycle can never close.
+ * that nests forever, a hall of mirrors. Exactly one tab in the browser counts
+ * as active, so the cycle can never close.
+ *
+ * The test cannot be `document.visibilityState`: Chrome reports a captured tab
+ * as visible for as long as it is being captured, wherever it actually is.
  */
 export const visibleCasts = computed(() => {
-  if (casting.value && !state.visible)
+  if (casting.value && !isActive.value)
     return []
   return state.casts.filter(c => c.sourceTabId !== state.tabId)
 })
@@ -45,6 +44,7 @@ export const activeCast = computed(() => {
 export function applyState(next: AppState): void {
   state.casts = next.casts
   state.layout = next.layout
+  state.activeTabId = next.activeTabId
 }
 
 /** Applied locally at once so dragging stays smooth, then shared with every tab. */

@@ -60,19 +60,22 @@ capture (`chrome://`, the Web Store) are rejected up front, with the reason show
 
 ### Only the tab you are looking at gets frames
 
-One peer connection per (cast × tab) means the hub encodes a separate copy of the video for every
-open tab, most of which are in the background and painting nothing. So a tab drops its connections
-once it has been hidden for 1.5s — long enough to flick past a tab without tearing anything down —
-and reopens them the moment it comes back. In practice only the visible tab is ever being encoded
-for.
+One peer connection per (cast x tab) means the hub encodes a separate copy of the video for every
+open tab, most of which are behind whatever the user is reading. So a tab drops its connections once
+another tab has been in front for 1.5s - long enough to flick past a tab without tearing anything
+down - and reopens them the moment it comes back.
 
 ### No hall of mirrors
 
 A cast keeps running after you leave its tab, so a bubble drawn in a casting tab is captured right
 back into its own stream - and two tabs casting each other nest that forever. So a tab that is
-itself being cast draws no bubbles at all unless it is the tab in front of the user. At most one tab
-per window is visible, so the cycle cannot close. (Two windows side by side, each showing a tab that
-casts the other, is the one arrangement this does not cover.)
+itself being cast draws no bubbles at all unless it is the tab in front of the user.
+
+Neither rule can ask the page itself: Chrome keeps a captured tab rendering in the background and
+reports it as `visible` for as long as the capture runs, so `document.visibilityState` is pinned on
+for exactly the tabs that must not draw. `src/background/focus.ts` watches `tabs.onActivated` and
+`windows.onFocusChanged` instead and broadcasts the one active tab id with the rest of the state.
+One active tab in the whole browser means the mirror cycle can never close, in one window or ten.
 
 ### Staying on top
 

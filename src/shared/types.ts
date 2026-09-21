@@ -22,6 +22,8 @@ export interface LayoutState {
 export interface AppState {
   casts: Cast[]
   layout: LayoutState
+  /** The one tab the user is looking at, or `null` if that is unknown. */
+  activeTabId: number | null
 }
 
 export const DEFAULT_LAYOUT: LayoutState = {

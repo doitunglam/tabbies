@@ -2,6 +2,7 @@ import type { HelloReply, Message } from '@/shared/messages'
 import type { LayoutState } from '@/shared/types'
 import { sendMessage, sendToTab } from '@/shared/messages'
 import { removeCast, renameCast, startCast } from './casts'
+import { refreshActiveTab, watchActiveTab } from './focus'
 import { clearState, getState, mutate } from './state'
 
 /**
@@ -18,11 +19,14 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
   void (async () => {
     switch (message.type) {
       case 'HELLO': {
+        // A tab that just loaded has to be told which tab is in front.
+        await refreshActiveTab()
         const state = await getState()
         sendResponse({ state, tabId: senderTabId } satisfies HelloReply)
         return
       }
       case 'START_CAST': {
+        await refreshActiveTab()
         sendResponse(await startCast())
         return
       }
@@ -87,3 +91,5 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.runtime.onStartup.addListener(() => {
   void clearState()
 })
+
+watchActiveTab()

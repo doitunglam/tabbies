@@ -1,7 +1,7 @@
 import type { SignalPayload } from '@/shared/messages'
 import { markRaw, ref, watch } from 'vue'
 import { sdpInit, sendMessage } from '@/shared/messages'
-import { state, visibleCasts } from './state'
+import { isActive, visibleCasts } from './state'
 
 interface Peer {
   pc: RTCPeerConnection
@@ -16,34 +16,35 @@ const peers = new Map<string, Peer>()
 export const streams = ref<Record<string, MediaStream>>({})
 
 /**
- * How long a tab may stay hidden before its streams are dropped. Flicking
- * through tabs should not tear down and rebuild connections on the way past.
+ * How long a tab may stay in the background before its streams are dropped.
+ * Flicking through tabs should not tear down and rebuild connections on the
+ * way past.
  */
-const HIDE_GRACE_MS = 1500
-let hideTimer: ReturnType<typeof setTimeout> | null = null
+const LEAVE_GRACE_MS = 1500
+let leaveTimer: ReturnType<typeof setTimeout> | null = null
 
-/** Backgrounded tabs draw nothing, so they are not worth encoding frames for. */
-const paused = () => !state.visible && hideTimer === null
+/** A tab nobody is looking at draws nothing, so it is not worth encoding for. */
+const paused = () => !isActive.value && leaveTimer === null
 
 /**
- * Drop this tab's streams while it is in the background and pick them up again
+ * Drop this tab's streams while another tab is in front and pick them up again
  * when it comes back. Every open tab holds a peer connection per cast
  * otherwise, and the hub encodes a separate copy of the video for each one.
  */
-export function pauseWhileHidden(): void {
-  watch(() => state.visible, (visible) => {
-    if (hideTimer) {
-      clearTimeout(hideTimer)
-      hideTimer = null
+export function pauseWhileInactive(): void {
+  watch(isActive, (active) => {
+    if (leaveTimer) {
+      clearTimeout(leaveTimer)
+      leaveTimer = null
     }
-    if (visible) {
+    if (active) {
       syncPeers()
     }
     else {
-      hideTimer = setTimeout(() => {
-        hideTimer = null
+      leaveTimer = setTimeout(() => {
+        leaveTimer = null
         syncPeers()
-      }, HIDE_GRACE_MS)
+      }, LEAVE_GRACE_MS)
     }
   })
 }

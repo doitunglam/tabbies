@@ -34,8 +34,7 @@ export function useTileInk(video: Ref<HTMLVideoElement | null>, active: Ref<bool
 
   function read() {
     const el = video.value
-    // A hidden tab paints nothing, so there is nothing to match.
-    if (!el || document.hidden)
+    if (!el)
       return
     for (const [band, ink] of [['top', top], ['middle', middle], ['bottom', bottom]] as const) {
       const luma = bandLuma(el, band)

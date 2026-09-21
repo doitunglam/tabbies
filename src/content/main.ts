@@ -2,8 +2,8 @@ import type { HelloReply, Message } from '@/shared/messages'
 import { createApp } from 'vue'
 import { sendMessage } from '@/shared/messages'
 import css from './overlay.css?inline'
-import { applyState, state, watchVisibility } from './state'
-import { handleSignal, pauseWhileHidden, syncPeers } from './viewer'
+import { applyState, state } from './state'
+import { handleSignal, pauseWhileInactive, syncPeers } from './viewer'
 import Overlay from './views/Overlay.vue'
 
 // Overlays belong to the top-level document only.
@@ -30,8 +30,7 @@ function mount() {
   raiseToTopLayer(host)
 
   createApp(Overlay).mount(mountPoint)
-  watchVisibility()
-  pauseWhileHidden()
+  pauseWhileInactive()
 
   chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
     if (message?.to !== 'content')
