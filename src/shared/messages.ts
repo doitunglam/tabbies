@@ -1,4 +1,4 @@
-import type { AppState, Cast, LayoutState } from './types'
+import type { AppState, LayoutState } from './types'
 
 export type Rgb = [number, number, number]
 
@@ -59,11 +59,9 @@ export interface CaptureReply {
   error?: string
 }
 
-export type Replies = {
-  HELLO: HelloReply
-  RUN_PROBE: ProbeReply
-  START_CAST: { ok: boolean, error?: string, cast?: Cast }
-  PICK_AND_CAPTURE: CaptureReply
+/** Session descriptions are not structured-cloneable; messaging needs the plain pair. */
+export function sdpInit(description: RTCSessionDescriptionInit): { type: RTCSdpType, sdp?: string } {
+  return { type: description.type, sdp: description.sdp }
 }
 
 /** `chrome.runtime.sendMessage` that never throws on "no receiving end". */

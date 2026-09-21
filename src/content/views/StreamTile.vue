@@ -2,12 +2,7 @@
 import type { Cast } from '@/shared/types'
 import { ref, watchEffect } from 'vue'
 
-const props = defineProps<{
-  cast: Cast
-  stream?: MediaStream
-  width: number
-  height: number
-}>()
+const props = defineProps<{ cast: Cast, stream?: MediaStream }>()
 
 defineEmits<{ close: [] }>()
 
@@ -21,7 +16,8 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div class="tb-tile" :style="{ width: `${width}px`, height: `${height}px` }">
+  <!-- Sized by --tb-tile-w / --tb-tile-h, inherited from .tb-root. -->
+  <div class="tb-tile">
     <video ref="video" class="tb-video" autoplay muted playsinline />
     <div v-if="!stream" class="tb-placeholder">
       Connecting...

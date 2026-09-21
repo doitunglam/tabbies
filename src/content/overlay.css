@@ -2,6 +2,9 @@
  * Every overlay style lives here. It is imported with `?inline` and injected
  * into the shadow root - Vue's `scoped` styles would land in the host page's
  * <head> instead, where they would not reach our shadow DOM.
+ *
+ * Sizes come from --tb-* custom properties set on .tb-root by
+ * `composables/useBubbleLayout.ts`, so the geometry has a single source.
  */
 
 *,
@@ -57,7 +60,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 28px;
+  height: var(--tb-header-h);
   padding: 0 4px 0 10px;
   font-size: 12px;
   font-weight: 600;
@@ -80,13 +83,15 @@
 .tb-grid {
   display: grid;
   grid-auto-flow: column;
-  gap: 10px;
+  gap: var(--tb-gap);
 }
 
 /* ---------------------------------------------------------------- tile */
 
 .tb-tile {
   position: relative;
+  width: var(--tb-tile-w);
+  height: var(--tb-tile-h);
   overflow: hidden;
   border-radius: 12px;
   background: #101214;
