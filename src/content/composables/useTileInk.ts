@@ -15,8 +15,8 @@ const SAMPLE_MS = 600
 /** Relative luminance of the tile's own background, behind letterbox bars. */
 const BACKDROP = 0.06
 /** Ink flips at these luminances; the gap in between stops it flickering. */
-const TO_DARK = 0.6
-const TO_LIGHT = 0.45
+export const TO_DARK = 0.6
+export const TO_LIGHT = 0.45
 
 export type Ink = 'light' | 'dark'
 
@@ -104,7 +104,7 @@ function bandLuma(video: HTMLVideoElement, band: 'top' | 'middle' | 'bottom'): n
   }
 }
 
-function nextInk(current: Ink, luma: number): Ink {
+export function nextInk(current: Ink, luma: number): Ink {
   if (current === 'light')
     return luma > TO_DARK ? 'dark' : 'light'
   return luma < TO_LIGHT ? 'light' : 'dark'

@@ -27,6 +27,13 @@ export async function ensureOffscreen(): Promise<void> {
   try {
     await creating
   }
+  catch (error) {
+    // Racing callers can both reach createDocument; only the loser fails, and
+    // only its error is worth swallowing.
+    const contexts = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] })
+    if (contexts.length === 0)
+      throw error
+  }
   finally {
     creating = null
   }

@@ -9,18 +9,38 @@ defineEmits<{
   dragStart: [event: PointerEvent]
   resizeStart: [event: PointerEvent]
   collapse: []
-  pick: [cast: Cast]
   close: [cast: Cast]
 }>()
 </script>
 
 <template>
   <div class="tb-group">
-    <!-- Drag handle for the whole group; the button stacks it back up. -->
-    <div class="tb-header" @pointerdown="$emit('dragStart', $event)">
-      <button class="tb-btn" title="Stack" @pointerdown.stop @click.stop="$emit('collapse')">
-        &#8863;
-      </button>
+    <!-- Same pair as the stack carries: stack them back up, and the handle the
+         group moves by. -->
+    <div class="tb-header" :class="{ 'tb-header--left': side === 'left' }">
+      <div class="tb-cluster">
+        <button class="tb-btn" title="Stack them back up" @pointerdown.stop @click.stop="$emit('collapse')">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 2.2 2.2 5.3 8 8.4l5.8-3.1L8 2.2Z" />
+            <path d="M2.2 10.4 8 13.5l5.8-3.1" />
+          </svg>
+        </button>
+        <button
+          class="tb-btn tb-handle"
+          title="Move"
+          @pointerdown.stop="$emit('dragStart', $event)"
+          @click.stop
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="6" cy="4" r="1.15" />
+            <circle cx="10" cy="4" r="1.15" />
+            <circle cx="6" cy="8" r="1.15" />
+            <circle cx="10" cy="8" r="1.15" />
+            <circle cx="6" cy="12" r="1.15" />
+            <circle cx="10" cy="12" r="1.15" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Column-first flow: fills downwards, then adds columns. -->
@@ -30,22 +50,9 @@ defineEmits<{
         :key="cast.id"
         :cast="cast"
         :stream="streams[cast.id]"
+        :side="side"
         @close="$emit('close', cast)"
-      >
-        <!-- The grid is the picker: taking one stacks the bubble around it. -->
-        <div class="tb-actions">
-          <button
-            class="tb-action"
-            title="Show this one in the bubble"
-            @pointerdown.stop
-            @click.stop="$emit('pick', cast)"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M6.4 2.8v3.6H2.8M9.6 2.8v3.6h3.6M9.6 13.2V9.6h3.6M6.4 13.2V9.6H2.8" />
-            </svg>
-          </button>
-        </div>
-      </StreamTile>
+      />
     </div>
 
     <!-- The grip hugs the edge the bubble is docked away from. -->

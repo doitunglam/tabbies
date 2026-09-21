@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import type { Cast } from '@/shared/types'
+import type { Cast, DockSide } from '@/shared/types'
 import { computed, ref, watchEffect } from 'vue'
 import { useTileInk } from '../composables/useTileInk'
 
-const props = defineProps<{ cast: Cast, stream?: MediaStream }>()
+const props = withDefaults(
+  defineProps<{ cast: Cast, stream?: MediaStream, side: DockSide, closable?: boolean }>(),
+  { closable: true },
+)
 
 defineEmits<{ close: [] }>()
 
@@ -33,15 +36,19 @@ watchEffect(() => {
     <div v-if="!stream" class="tb-placeholder">
       Connecting...
     </div>
-    <div class="tb-controls">
+    <!-- The buttons hug whichever edge the bubble is docked to. -->
+    <div class="tb-controls" :class="{ 'tb-controls--left': side === 'left' }">
       <span class="tb-label">{{ cast.label }}</span>
       <button
-        class="tb-btn"
+        v-if="closable"
+        class="tb-btn tb-close"
         title="Stop casting"
         @pointerdown.stop
         @click.stop="$emit('close')"
       >
-        &#10005;
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+        </svg>
       </button>
     </div>
     <slot />

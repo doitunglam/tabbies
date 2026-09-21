@@ -1,4 +1,4 @@
-import type { HelloReply, Message } from '@/shared/messages'
+import type { HelloReply, Message, SwMessage } from '@/shared/messages'
 import type { LayoutState } from '@/shared/types'
 import { sendMessage, sendToTab } from '@/shared/messages'
 import { removeCast, renameCast, startCast } from './casts'
@@ -17,71 +17,87 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
   const senderTabId = sender.tab?.id ?? null
 
   void (async () => {
-    switch (message.type) {
-      case 'HELLO': {
-        // A tab that just loaded has to be told which tab is in front.
-        await refreshActiveTab()
-        const state = await getState()
-        sendResponse({ state, tabId: senderTabId } satisfies HelloReply)
-        return
-      }
-      case 'START_CAST': {
-        await refreshActiveTab()
-        sendResponse(await startCast())
-        return
-      }
-      case 'STOP_CAST': {
-        await sendMessage({ to: 'offscreen', type: 'STOP_CAPTURE', castId: message.castId })
-        await removeCast(message.castId)
-        sendResponse({ ok: true })
-        return
-      }
-      case 'CAST_ENDED': {
-        await removeCast(message.castId)
-        sendResponse({ ok: true })
-        return
-      }
-      case 'UPDATE_LAYOUT': {
-        await mutate((state) => {
-          Object.assign(state.layout, message.patch as Partial<LayoutState>)
-        })
-        sendResponse({ ok: true })
-        return
-      }
-      case 'REQUEST_OFFER': {
-        if (senderTabId != null)
-          await sendMessage({ to: 'offscreen', type: 'CREATE_OFFER', castId: message.castId, viewerTabId: senderTabId })
-        sendResponse({ ok: true })
-        return
-      }
-      case 'DROP_PEER': {
-        if (senderTabId != null)
-          await sendMessage({ to: 'offscreen', type: 'DROP_PEER', castId: message.castId, viewerTabId: senderTabId })
-        sendResponse({ ok: true })
-        return
-      }
-      case 'SIGNAL': {
-        if (senderTabId != null) {
-          // Viewer -> hub.
-          await sendMessage({ to: 'offscreen', type: 'SIGNAL', castId: message.castId, viewerTabId: senderTabId, payload: message.payload })
-        }
-        else if (message.viewerTabId != null) {
-          // Hub -> viewer.
-          await sendToTab(message.viewerTabId, { to: 'content', type: 'SIGNAL', castId: message.castId, payload: message.payload })
-        }
-        sendResponse({ ok: true })
-        return
-      }
+    try {
+      await handle(message, senderTabId, sendResponse)
+    }
+    catch (error) {
+      // Without this the whole worker reports an unhandled rejection and the
+      // caller waits for a reply that never comes.
+      console.error(`[tabbies] ${message.type} failed`, error)
+      sendResponse({ ok: false, error: (error as Error).message })
     }
   })()
 
   return true
 })
 
+async function handle(
+  message: SwMessage,
+  senderTabId: number | null,
+  sendResponse: (response: unknown) => void,
+): Promise<void> {
+  switch (message.type) {
+    case 'HELLO': {
+      // A tab that just loaded has to be told which tab is in front.
+      await refreshActiveTab()
+      const state = await getState()
+      sendResponse({ state, tabId: senderTabId } satisfies HelloReply)
+      return
+    }
+    case 'START_CAST': {
+      await refreshActiveTab()
+      sendResponse(await startCast())
+      return
+    }
+    case 'STOP_CAST': {
+      await sendMessage({ to: 'offscreen', type: 'STOP_CAPTURE', castId: message.castId })
+      await removeCast(message.castId)
+      sendResponse({ ok: true })
+      return
+    }
+    case 'CAST_ENDED': {
+      await removeCast(message.castId)
+      sendResponse({ ok: true })
+      return
+    }
+    case 'UPDATE_LAYOUT': {
+      await mutate((state) => {
+        Object.assign(state.layout, message.patch as Partial<LayoutState>)
+      })
+      sendResponse({ ok: true })
+      return
+    }
+    case 'REQUEST_OFFER': {
+      if (senderTabId != null)
+        await sendMessage({ to: 'offscreen', type: 'CREATE_OFFER', castId: message.castId, viewerTabId: senderTabId })
+      sendResponse({ ok: true })
+      return
+    }
+    case 'DROP_PEER': {
+      if (senderTabId != null)
+        await sendMessage({ to: 'offscreen', type: 'DROP_PEER', castId: message.castId, viewerTabId: senderTabId })
+      sendResponse({ ok: true })
+      return
+    }
+    case 'SIGNAL': {
+      if (senderTabId != null) {
+        // Viewer -> hub.
+        await sendMessage({ to: 'offscreen', type: 'SIGNAL', castId: message.castId, viewerTabId: senderTabId, payload: message.payload })
+      }
+      else if (message.viewerTabId != null) {
+        // Hub -> viewer.
+        await sendToTab(message.viewerTabId, { to: 'content', type: 'SIGNAL', castId: message.castId, payload: message.payload })
+      }
+      sendResponse({ ok: true })
+      return
+    }
+  }
+}
+
 // A tab renames itself on navigation, and single-page apps do it as you browse.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.title)
-    void renameCast(tabId, changeInfo.title)
+    void renameCast(tabId, changeInfo.title).catch(error => console.error('[tabbies] rename failed', error))
 })
 
 chrome.tabs.onRemoved.addListener((tabId) => {

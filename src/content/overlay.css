@@ -28,7 +28,7 @@
 .tb-stack {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: var(--tb-tile-h);
 }
 
 .tb-card {
@@ -36,16 +36,14 @@
   inset: 0;
   transform-origin: 50% 85%;
   transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.25, 1);
-  cursor: grab;
+  /* The card answers clicks; moving the bubble is the rail's job. */
+  cursor: pointer;
 }
 
-.tb-card:active {
-  cursor: grabbing;
-}
-
-/* Cards further down the pile fall back out of focus. */
+/* Cards further down the pile sit back a little, but keep showing what they
+   are playing - the offset has to reveal picture, not just an edge. */
 .tb-card--behind {
-  filter: brightness(0.62) saturate(0.85) blur(0.6px);
+  filter: brightness(0.82) saturate(0.95);
 }
 
 /* Their chrome belongs to the card in front; a buried button is not clickable. */
@@ -65,16 +63,60 @@
 }
 
 .tb-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  position: relative;
   height: var(--tb-header-h);
-  padding: 0 4px;
-  cursor: grab;
 }
 
-.tb-header:active {
-  cursor: grabbing;
+/* The bar's buttons ride on a pill: over an unknown page, a plate is the only
+   thing that guarantees the icons stay readable. */
+.tb-cluster {
+  position: absolute;
+  top: 50%;
+  /* Placed by `left` + a translate rather than by flex alignment, because a
+     flex switch cannot be animated: this way the pill slides across the bar
+     when the bubble docks to the other edge, in step with the bubble's own
+     travel. */
+  left: calc(100% - 4px);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 3px;
+  background: rgb(16 18 22 / 0.55);
+  border-radius: 999px;
+  transform: translate(-100%, -50%);
+  backdrop-filter: blur(6px);
+  transition:
+    left 0.28s cubic-bezier(0.2, 0.9, 0.25, 1),
+    transform 0.28s cubic-bezier(0.2, 0.9, 0.25, 1),
+    background-color 0.25s ease;
+  animation: tb-fade-in 0.22s ease;
+}
+
+/* Docked left: the same pill, at the other end of the bar. */
+.tb-header--left .tb-cluster {
+  left: 4px;
+  transform: translate(0, -50%);
+}
+
+/* Opacity only: the transform belongs to whichever edge it is docked to. */
+@keyframes tb-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The plate carries the contrast now, so the icons drop their halo. */
+.tb-header .tb-btn svg {
+  filter: none;
+}
+
+.tb-root--ink-dark .tb-cluster {
+  background: rgb(255 255 255 / 0.62);
+}
+
+/* A light page needs dark icons in the bar, and the halo flips with them. */
+.tb-root--ink-dark .tb-header .tb-btn {
+  color: #0b0d10;
 }
 
 .tb-grid {
@@ -125,6 +167,12 @@
   color: #9aa1ad;
 }
 
+/* Docked left: label and buttons swap ends, so the buttons stay on the edge
+   the bubble is stuck to. */
+.tb-controls--left {
+  flex-direction: row-reverse;
+}
+
 /* Controls stay out of the way until the pointer is over the tile. */
 .tb-controls {
   position: absolute;
@@ -132,8 +180,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px;
-  background: linear-gradient(to bottom, rgb(0 0 0 / 0.65), transparent);
+  /* The extra room below is scrim, not layout: the fade has to finish under
+     the label rather than half way down it. */
+  padding: 6px 6px 18px;
+  background: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.7) 0%,
+    rgb(0 0 0 / 0.6) 55%,
+    transparent 100%
+  );
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -154,65 +209,87 @@
   white-space: nowrap;
 }
 
-.tb-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
-  color: #fff;
-  cursor: pointer;
-  background: rgb(255 255 255 / 0.16);
-  border: none;
-  border-radius: 6px;
-}
-
-.tb-btn:hover {
-  background: rgb(255 255 255 / 0.3);
-}
-
-/* Centred actions, revealed with the rest of the chrome. */
-.tb-actions {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  gap: 10px;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
+/* Every button in the overlay is a bare icon: no plate, no fill. The stream
+   behind it is the background, so the icon carries its own shadow instead. */
+.tb-btn,
 .tb-action {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
   padding: 0;
   color: #fff;
   cursor: pointer;
-  background: rgb(0 0 0 / 0.45);
+  background: none;
   border: none;
-  border-radius: 999px;
-  backdrop-filter: blur(3px);
+  opacity: 0.85;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
+.tb-btn {
+  width: 22px;
+  height: 22px;
+}
+
+.tb-action {
+  width: 30px;
+  height: 30px;
+}
+
+.tb-btn:hover,
 .tb-action:hover {
-  background: rgb(0 0 0 / 0.68);
+  opacity: 1;
+  transform: scale(1.12);
 }
 
+.tb-btn svg,
 .tb-action svg {
-  width: 16px;
-  height: 16px;
   fill: none;
   stroke: currentcolor;
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.55));
+}
+
+.tb-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tb-action svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Actions, revealed with the rest of the chrome. */
+.tb-actions {
+  position: absolute;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* The grid's picker sits in the middle of its tile. */
+.tb-actions--centre {
+  top: 50%;
+  left: 50%;
+  gap: 16px;
+  transform: translate(-50%, -50%);
+}
+
+/* Dragging starts here, and only here. */
+.tb-handle {
+  cursor: grab;
+}
+
+.tb-handle:active {
+  cursor: grabbing;
+}
+
+/* Six dots, so it reads as a handle rather than another action. */
+.tb-handle svg {
+  fill: currentcolor;
+  stroke: none;
 }
 
 .tb-tile:hover .tb-actions,
@@ -220,10 +297,22 @@
   opacity: 1;
 }
 
+/* Ending a cast is the one button that has to be unmissable, so it goes to
+   full strength: pure white over dark pictures, pure black over bright ones. */
+.tb-close {
+  color: #fff;
+  opacity: 1;
+}
+
 /* Bright content: the scrim, label and icons invert so they stay readable.
    Which band is bright is measured per tile by `composables/useTileInk.ts`. */
 .tb-tile--ink-dark .tb-controls {
-  background: linear-gradient(to bottom, rgb(255 255 255 / 0.75), transparent);
+  background: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.85) 0%,
+    rgb(255 255 255 / 0.72) 55%,
+    transparent 100%
+  );
 }
 
 .tb-tile--ink-dark .tb-label {
@@ -233,20 +322,22 @@
 
 .tb-tile--ink-dark .tb-btn {
   color: #0b0d10;
-  background: rgb(0 0 0 / 0.12);
 }
 
-.tb-tile--ink-dark .tb-btn:hover {
-  background: rgb(0 0 0 / 0.24);
+.tb-tile--ink-dark .tb-close {
+  color: #000;
+}
+
+.tb-tile--ink-dark .tb-btn svg {
+  filter: drop-shadow(0 1px 2px rgb(255 255 255 / 0.7));
 }
 
 .tb-tile--actions-dark .tb-action {
   color: #0b0d10;
-  background: rgb(255 255 255 / 0.62);
 }
 
-.tb-tile--actions-dark .tb-action:hover {
-  background: rgb(255 255 255 / 0.85);
+.tb-tile--actions-dark .tb-action svg {
+  filter: drop-shadow(0 1px 2px rgb(255 255 255 / 0.7));
 }
 
 .tb-tile--grip-dark .tb-grip::after {

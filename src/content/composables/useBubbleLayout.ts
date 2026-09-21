@@ -26,8 +26,9 @@ export function useBubbleLayout() {
   const cols = computed(() => Math.max(1, Math.ceil(visibleCasts.value.length / maxRows.value)))
 
   const size = computed(() => {
+    // Both modes carry the same bar above them.
     if (layout.value.mode === 'stacked')
-      return { w: layout.value.tileW, h: layout.value.tileH }
+      return { w: layout.value.tileW, h: HEADER_H + layout.value.tileH }
     return {
       w: cols.value * layout.value.tileW + (cols.value - 1) * GAP,
       h: HEADER_H + rows.value * layout.value.tileH + (rows.value - 1) * GAP,

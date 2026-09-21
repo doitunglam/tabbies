@@ -27,6 +27,11 @@ export async function refreshActiveTab(): Promise<void> {
 
 /** Registered at the top level, so switching tabs wakes the worker. */
 export function watchActiveTab(): void {
-  chrome.tabs.onActivated.addListener(() => void refreshActiveTab())
-  chrome.windows.onFocusChanged.addListener(() => void refreshActiveTab())
+  chrome.tabs.onActivated.addListener(track)
+  chrome.windows.onFocusChanged.addListener(track)
+}
+
+function track(): void {
+  // An event listener has nowhere to return a rejection to.
+  void refreshActiveTab().catch(error => console.error('[tabbies] active tab lookup failed', error))
 }

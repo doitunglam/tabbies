@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { GAP, HEADER_H, MAX_TILE, MIN_TILE, useBubbleLayout } from '../composables/useBubbleLayout'
 import { clampTop, EDGE_MARGIN, nearestSide } from '../composables/useDock'
 import { useDrag } from '../composables/useDrag'
+import { usePageInk } from '../composables/usePageInk'
 import { activeCast, state, stopCast, updateLayout, visibleCasts } from '../state'
 import ExpandedGrid from './ExpandedGrid.vue'
 import StackedBubble from './StackedBubble.vue'
@@ -12,6 +13,10 @@ import StackedBubble from './StackedBubble.vue'
 const PEEK = 2
 
 const { viewport, layout, rows, cols, size, restLeft, restTop, cssVars } = useBubbleLayout()
+
+/* The bar hangs over the page, so its icons take their colour from it. */
+const root = ref<HTMLElement | null>(null)
+const { ink: headerInk, read: readPageInk } = usePageInk(root, computed(() => visibleCasts.value.length > 0))
 
 /* ----------------------------------------------------------------- moving */
 
@@ -35,6 +40,8 @@ const drag = useDrag({
       side: nearestSide(dragLeft.value, size.value.w, viewport.width),
       offsetY: clampTop(dragTop.value, size.value.h, viewport.height),
     })
+    // The bar is over something else now.
+    requestAnimationFrame(readPageInk)
   },
 })
 
@@ -101,7 +108,7 @@ function tileCap(): { w: number, h: number } {
   const availW = viewport.width - 2 * EDGE_MARGIN
   const availH = viewport.height - anchorTop - EDGE_MARGIN
   const cap = layout.value.mode === 'stacked'
-    ? { w: availW, h: availH }
+    ? { w: availW, h: availH - HEADER_H }
     : {
         w: (availW - (cols.value - 1) * GAP) / cols.value,
         h: (availH - HEADER_H - (rows.value - 1) * GAP) / rows.value,
@@ -152,11 +159,6 @@ function onCardClick(cast: Cast) {
     updateLayout({ mode: 'expanded' })
 }
 
-/** Picking a stream out of the grid is what collapses it. */
-function pickCast(cast: Cast) {
-  updateLayout({ mode: 'stacked', activeCastId: cast.id })
-}
-
 /** Escape is the way out of the grid without choosing. */
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && layout.value.mode === 'expanded')
@@ -179,7 +181,9 @@ function flipCard() {
 <template>
   <div
     v-if="visibleCasts.length > 0"
+    ref="root"
     class="tb-root"
+    :class="{ 'tb-root--ink-dark': headerInk === 'dark' }"
     :style="rootStyle"
   >
     <StackedBubble
@@ -202,7 +206,6 @@ function flipCard() {
       @drag-start="startDrag"
       @resize-start="startResize"
       @collapse="updateLayout({ mode: 'stacked' })"
-      @pick="pickCast"
       @close="stopCast($event.id)"
     />
   </div>

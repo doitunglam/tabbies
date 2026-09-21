@@ -1,4 +1,4 @@
-import type { Message } from '@/shared/messages'
+import type { Message, OffscreenMessage } from '@/shared/messages'
 import { sendMessage } from '@/shared/messages'
 import { startCapture, stopCapture } from './captures'
 import { createOffer, dropCast, dropPeer, dropViewer, flushPending, handleSignal } from './fanout'
@@ -28,35 +28,39 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
     return undefined
 
   void (async () => {
-    switch (message.type) {
-      case 'START_CAPTURE':
-        try {
-          sendResponse(await beginCast(message.castId, message.streamId))
-        }
-        catch (error) {
-          const { name, message: reason } = error as DOMException
-          console.error(`[tabbies] capture failed: ${name}: ${reason}`, error)
-          sendResponse({ ok: false, error: name })
-        }
-        return
-      case 'STOP_CAPTURE':
-        endCast(message.castId)
-        break
-      case 'VIEWER_GONE':
-        dropViewer(message.tabId)
-        break
-      case 'CREATE_OFFER':
-        await createOffer(message.castId, message.viewerTabId)
-        break
-      case 'DROP_PEER':
-        dropPeer(message.castId, message.viewerTabId)
-        break
-      case 'SIGNAL':
-        await handleSignal(message.castId, message.viewerTabId, message.payload)
-        break
+    try {
+      await handle(message, sendResponse)
     }
-    sendResponse({ ok: true })
+    catch (error) {
+      const { name, message: reason } = error as DOMException
+      console.error(`[tabbies] ${message.type} failed: ${name}: ${reason}`, error)
+      sendResponse({ ok: false, error: name })
+    }
   })()
 
   return true
 })
+
+async function handle(message: OffscreenMessage, sendResponse: (response: unknown) => void): Promise<void> {
+  switch (message.type) {
+    case 'START_CAPTURE':
+      sendResponse(await beginCast(message.castId, message.streamId))
+      return
+    case 'STOP_CAPTURE':
+      endCast(message.castId)
+      break
+    case 'VIEWER_GONE':
+      dropViewer(message.tabId)
+      break
+    case 'CREATE_OFFER':
+      await createOffer(message.castId, message.viewerTabId)
+      break
+    case 'DROP_PEER':
+      dropPeer(message.castId, message.viewerTabId)
+      break
+    case 'SIGNAL':
+      await handleSignal(message.castId, message.viewerTabId, message.payload)
+      break
+  }
+  sendResponse({ ok: true })
+}
