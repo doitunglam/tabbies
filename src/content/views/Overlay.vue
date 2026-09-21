@@ -108,7 +108,7 @@ function startResize(event: PointerEvent) {
 function tileCap(): { w: number, h: number } {
   const availW = viewport.width - 2 * EDGE_MARGIN
   const availH = viewport.height - anchorTop - EDGE_MARGIN
-  const cap = layout.value.mode === 'stacked'
+  const cap = mode.value === 'stacked'
     ? { w: availW, h: availH - HEADER_H }
     : {
         w: (availW - (cols.value - 1) * GAP) / cols.value,
@@ -139,7 +139,40 @@ function keepRatio(w: number, h: number): { w: number, h: number } {
   return { w: Math.round(wantW * scale), h: Math.round(wantH * scale) }
 }
 
+/* ------------------------------------------------------- drag feedback */
+
+/**
+ * The cursor for the whole viewport while a drag is on.
+ *
+ * A captured pointer keeps sending its moves to the handle, but the *cursor*
+ * is still whatever the page paints under the pointer - and the pointer leaves
+ * the handle within a few pixels of the press. So a drag over ordinary page
+ * text showed an I-beam, which reads as nothing being dragged at all. Holding
+ * the pointer's own cursor over the page for as long as the drag lasts is what
+ * `.tb-shield` is for, and this is the shape it wears.
+ */
+const dragCursor = computed(() => {
+  if (drag.dragging.value)
+    return 'grabbing'
+  if (!resize.dragging.value)
+    return null
+  // The grip sits on the bubble's inner corner, so which diagonal it pulls
+  // along depends on the edge the bubble is docked to.
+  return layout.value.side === 'right' ? 'nesw-resize' : 'nwse-resize'
+})
+
 /* ------------------------------------------------------------------ modes */
+
+/**
+ * Which mode is really drawn.
+ *
+ * One stream has nothing to fan out: a grid of one is the stack, minus the
+ * pile. So the switch between them is not offered for a single bubble - and
+ * since that button is also the way back, a lone stream is always drawn
+ * stacked, rather than being left in a grid it can no longer leave. The stored
+ * mode is untouched, so a second cast reopens whatever was last chosen.
+ */
+const mode = computed(() => (visibleCasts.value.length > 1 ? layout.value.mode : 'stacked'))
 
 const stackCards = computed(() => {
   const list = visibleCasts.value
@@ -148,7 +181,7 @@ const stackCards = computed(() => {
   return active ? [...behind, active] : behind
 })
 
-/** A peeking card comes to the front; the front card opens the grid. */
+/** A peeking card comes to the front. The front card is not a button. */
 function onCardClick(cast: Cast) {
   if (justDragged) {
     justDragged = false
@@ -156,8 +189,6 @@ function onCardClick(cast: Cast) {
   }
   if (cast.id !== activeCast.value?.id)
     updateLayout({ activeCastId: cast.id })
-  else
-    updateLayout({ mode: 'expanded' })
 }
 
 /** Escape is the way out of the grid without choosing. */
@@ -184,11 +215,18 @@ function flipCard() {
     v-if="visibleCasts.length > 0"
     ref="root"
     class="tb-root"
-    :class="{ 'tb-root--ink-dark': headerInk === 'dark' }"
+    :class="{
+      'tb-root--ink-dark': headerInk === 'dark',
+      'tb-root--dragging': drag.dragging.value,
+    }"
     :style="rootStyle"
   >
+    <!-- Only there for the length of a drag: it carries the cursor across the
+         page, and keeps the page from reacting to a pointer that is busy. -->
+    <div v-if="dragCursor" class="tb-shield" :class="`tb-shield--${dragCursor}`" />
+
     <StackedBubble
-      v-if="layout.mode === 'stacked'"
+      v-if="mode === 'stacked'"
       :cards="stackCards"
       :active-id="activeCast?.id ?? null"
       :side="layout.side"

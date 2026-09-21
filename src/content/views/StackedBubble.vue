@@ -56,8 +56,11 @@ function cardStyle(index: number) {
          it out, and the handle it moves by. Ending a cast belongs to the card
          it ends, so that button stays on the card. -->
     <BubbleHeader :side="side" @drag-start="$emit('dragStart', $event)">
+      <!-- Kept on the bar with one stream, greyed: there is nothing to open
+           out yet, and the bar should not change shape when there is. -->
       <button
         class="tb-btn"
+        :disabled="cards.length < 2"
         title="Show every stream"
         @pointerdown.stop
         @click.stop="$emit('expand')"

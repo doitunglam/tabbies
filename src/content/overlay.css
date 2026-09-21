@@ -23,6 +23,38 @@
   touch-action: none;
 }
 
+/* The pane that holds the cursor for a whole drag. It sits behind the bubble:
+   everything the bubble draws is positioned, so the pointer still finds the
+   cards and their controls keep answering hover while the drag is on. */
+.tb-shield {
+  position: fixed;
+  inset: 0;
+}
+
+/* One class per cursor the drag can wear, named after the cursor itself. */
+.tb-shield--grabbing {
+  cursor: grabbing;
+}
+
+.tb-shield--nesw-resize {
+  cursor: nesw-resize;
+}
+
+.tb-shield--nwse-resize {
+  cursor: nwse-resize;
+}
+
+/* Picked up. A card being carried gets an edge of its own and a deeper
+   shadow - the ring is laid down in two tones, light inside and dark outside,
+   so it stays visible whichever way the page under it is painted. */
+.tb-root--dragging .tb-tile {
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.92),
+    0 0 0 3.5px rgb(0 0 0 / 0.45),
+    0 18px 44px rgb(0 0 0 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
 /* ------------------------------------------------------------- stacked */
 
 .tb-stack {
@@ -36,7 +68,11 @@
   inset: 0;
   transform-origin: 50% 85%;
   transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.25, 1);
-  /* The card answers clicks; moving the bubble is the rail's job. */
+}
+
+/* Only a card down the pile answers a click, by coming to the front. The one
+   already in front does nothing, so it does not offer. */
+.tb-card--behind {
   cursor: pointer;
 }
 
@@ -239,6 +275,20 @@
 .tb-action:hover {
   opacity: 1;
   transform: scale(1.12);
+}
+
+/* Greyed rather than gone: a button with nothing to do keeps its place on the
+   bar, and stops answering the pointer. */
+.tb-btn:disabled,
+.tb-action:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.tb-btn:disabled:hover,
+.tb-action:disabled:hover {
+  opacity: 0.3;
+  transform: none;
 }
 
 .tb-btn svg,
