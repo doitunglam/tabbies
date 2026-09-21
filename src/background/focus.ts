@@ -13,6 +13,14 @@ export async function refreshActiveTab(): Promise<void> {
   // The last focused window, so there is one active tab in the whole browser
   // rather than one per window.
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+
+  // A popup window - an SSO sign-in, a payment sheet - opens *over* the tab the
+  // user was reading, not instead of it. Handing it the focus would leave that
+  // tab counting as background, which drops its streams a second and a half
+  // later: sign in, come back, and the bubble is showing "Connecting..." again.
+  if (tab?.windowId != null && !(await isBrowsingWindow(tab.windowId)))
+    return
+
   const activeTabId = tab?.id ?? null
 
   const current = await getState()
@@ -23,6 +31,25 @@ export async function refreshActiveTab(): Promise<void> {
   await write((state) => {
     state.activeTabId = activeTabId
   })
+}
+
+/**
+ * A window the user browses in, as opposed to one a page opened for a single
+ * job. Those have no tab strip, they are small, and what they are showing is
+ * the only thing the user wants on screen while they are open - so no bubble
+ * belongs there, and focus moving into one is not the user leaving their tab.
+ *
+ * A window that cannot be read is treated as an ordinary one: that is how the
+ * overlay behaved before, and it is the harmless half of the guess.
+ */
+export async function isBrowsingWindow(windowId: number): Promise<boolean> {
+  try {
+    const win = await chrome.windows.get(windowId)
+    return win.type === 'normal'
+  }
+  catch {
+    return true
+  }
 }
 
 /** Registered at the top level, so switching tabs wakes the worker. */

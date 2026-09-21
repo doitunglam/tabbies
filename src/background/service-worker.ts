@@ -2,7 +2,7 @@ import type { HelloReply, SwMessage } from '@/shared/messages'
 import { fromThisExtension, sendMessage, sendToTab } from '@/shared/messages'
 import { sanitizeLayoutPatch } from '@/shared/types'
 import { removeCast, renameCast, startCast } from './casts'
-import { refreshActiveTab, watchActiveTab } from './focus'
+import { isBrowsingWindow, refreshActiveTab, watchActiveTab } from './focus'
 import { clearState, getState, mutate } from './state'
 
 /**
@@ -15,10 +15,11 @@ chrome.runtime.onMessage.addListener((message: SwMessage, sender, sendResponse) 
     return false
 
   const senderTabId = sender.tab?.id ?? null
+  const senderWindowId = sender.tab?.windowId ?? null
 
   void (async () => {
     try {
-      await handle(message, senderTabId, sendResponse)
+      await handle(message, senderTabId, senderWindowId, sendResponse)
     }
     catch (error) {
       // Without this the whole worker reports an unhandled rejection and the
@@ -34,14 +35,18 @@ chrome.runtime.onMessage.addListener((message: SwMessage, sender, sendResponse) 
 async function handle(
   message: SwMessage,
   senderTabId: number | null,
+  senderWindowId: number | null,
   sendResponse: (response: unknown) => void,
 ): Promise<void> {
   switch (message.type) {
     case 'HELLO': {
-      // A tab that just loaded has to be told which tab is in front.
+      // A tab that just loaded has to be told which tab is in front, and
+      // whether it is the kind of window that shows a bubble at all - only the
+      // worker can see which window its sender is in.
       await refreshActiveTab()
       const state = await getState()
-      sendResponse({ state, tabId: senderTabId } satisfies HelloReply)
+      const overlay = senderWindowId == null || await isBrowsingWindow(senderWindowId)
+      sendResponse({ state, tabId: senderTabId, overlay } satisfies HelloReply)
       return
     }
     case 'START_CAST': {

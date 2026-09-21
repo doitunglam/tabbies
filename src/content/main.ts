@@ -10,7 +10,33 @@ import Overlay from './views/Overlay.vue'
 
 // Overlays belong to the top-level document only.
 if (window.top === window)
+  void start()
+
+/**
+ * Says hello first, and builds the overlay only where one belongs.
+ *
+ * Nothing is mounted before the worker answers, because the answer is what
+ * settles whether this document should draw at all. A window a page opened for
+ * one job - an SSO sign-in above all - runs this content script exactly like a
+ * tab does, and a bubble parked over the sign-in form is pure obstruction:
+ * small window, no tab strip, one thing to do. Skipping the mount also leaves
+ * no `STATE` listener behind, so a later broadcast cannot put a bubble there
+ * after the fact.
+ */
+async function start() {
+  const reply = await sendMessage<HelloReply>({ to: 'sw', type: 'HELLO' })
+  // No answer at all (a worker that could not be woken) is not a reason to go
+  // dark: a missing bubble is worse than one in an odd window.
+  if (reply && !reply.overlay)
+    return
+
   mount()
+  if (!reply)
+    return
+  state.tabId = reply.tabId
+  applyState(reply.state)
+  syncPeers()
+}
 
 function mount() {
   const { host, mountPoint } = createHost(css)
@@ -39,8 +65,6 @@ function mount() {
     sendResponse({ ok: true })
     return false
   })
-
-  void hello()
 }
 
 /**
@@ -61,14 +85,4 @@ function raiseToTopLayer(host: HTMLElement): void {
   catch {
     host.removeAttribute('popover')
   }
-}
-
-/** Announce this tab and pick up whatever is already casting. */
-async function hello() {
-  const reply = await sendMessage<HelloReply>({ to: 'sw', type: 'HELLO' })
-  if (!reply)
-    return
-  state.tabId = reply.tabId
-  applyState(reply.state)
-  syncPeers()
 }

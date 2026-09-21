@@ -40,6 +40,12 @@ export type Message = SwMessage | OffscreenMessage | ContentMessage | PopupMessa
 export interface HelloReply {
   state: AppState
   tabId: number | null
+  /**
+   * Whether this tab is somewhere a bubble belongs. False in a window with no
+   * tab strip - the popup an SSO sign-in opens, say - which a content script
+   * cannot tell apart from an ordinary tab on its own.
+   */
+  overlay: boolean
 }
 
 export interface CaptureReply {
