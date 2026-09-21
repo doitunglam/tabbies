@@ -1,4 +1,4 @@
-import { rates } from '@/shared/perf'
+import { rates, videoStat } from '@/shared/perf'
 import { captureEntries } from './captures'
 import { peerEntries } from './fanout'
 
@@ -92,17 +92,6 @@ async function outbound(entry: string, pc: RTCPeerConnection) {
       : undefined,
     limitedBy: stat.qualityLimitationReason,
   }
-}
-
-/** First video entry of one kind; a stats report is not iterable. */
-async function videoStat<T>(pc: RTCPeerConnection, type: string): Promise<T | null> {
-  const report = await pc.getStats()
-  let found: T | null = null
-  report.forEach((stat) => {
-    if (found == null && stat.type === type && stat.kind === 'video')
-      found = stat as T
-  })
-  return found
 }
 
 /** Prints a table a second until the returned function is called. */

@@ -1,6 +1,6 @@
 import type { AppState } from '@/shared/types'
 import { sendMessage, sendToTab } from '@/shared/messages'
-import { DEFAULT_LAYOUT } from '@/shared/types'
+import { defaultLayout } from '@/shared/types'
 
 /**
  * The authoritative cast registry and bubble layout.
@@ -14,7 +14,7 @@ const STORAGE_KEY = 'tabbies:state'
 export async function getState(): Promise<AppState> {
   const stored = await chrome.storage.session.get(STORAGE_KEY)
   const state = stored[STORAGE_KEY] as AppState | undefined
-  return state ?? { casts: [], layout: { ...DEFAULT_LAYOUT }, activeTabId: null }
+  return state ?? { casts: [], layout: defaultLayout(), activeTabId: null }
 }
 
 export async function clearState(): Promise<void> {

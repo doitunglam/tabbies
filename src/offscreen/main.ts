@@ -1,5 +1,5 @@
-import type { Message, OffscreenMessage } from '@/shared/messages'
-import { sendMessage } from '@/shared/messages'
+import type { OffscreenMessage } from '@/shared/messages'
+import { fromThisExtension, sendMessage } from '@/shared/messages'
 import { startCapture, stopCapture } from './captures'
 import { createOffer, dropCast, dropPeer, dropViewer, flushPending, handleSignal, setViewerSize } from './fanout'
 import { installStatsConsole } from './stats'
@@ -19,16 +19,14 @@ async function beginCast(castId: string, streamId: string): Promise<{ ok: true }
   return { ok: true }
 }
 
-installStatsConsole()
-
 function endCast(castId: string): void {
   stopCapture(castId)
   dropCast(castId)
 }
 
-chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
-  if (message?.to !== 'offscreen')
-    return undefined
+chrome.runtime.onMessage.addListener((message: OffscreenMessage, sender, sendResponse) => {
+  if (!fromThisExtension(sender) || message?.to !== 'offscreen')
+    return false
 
   void (async () => {
     try {
@@ -70,3 +68,5 @@ async function handle(message: OffscreenMessage, sendResponse: (response: unknow
   }
   sendResponse({ ok: true })
 }
+
+installStatsConsole()

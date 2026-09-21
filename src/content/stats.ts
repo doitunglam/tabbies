@@ -1,4 +1,5 @@
-import { rates, setTracing, traceReport } from '@/shared/perf'
+import { rates, setTracing, traceReport, videoStat } from '@/shared/perf'
+import { hostShadowRoot } from './host'
 import { state, visibleCasts } from './state'
 import { peerConnections, streams } from './viewer'
 
@@ -35,7 +36,7 @@ async function snapshot(): Promise<Row[]> {
   const rows: Row[] = []
 
   for (const [castId, pc] of peerConnections()) {
-    const stat = await inbound(pc)
+    const stat = await videoStat<InboundStat>(pc, 'inbound-rtp')
     if (!stat)
       continue
 
@@ -58,20 +59,9 @@ async function snapshot(): Promise<Row[]> {
   return rows
 }
 
-async function inbound(pc: RTCPeerConnection): Promise<InboundStat | null> {
-  const report = await pc.getStats()
-  let found: InboundStat | null = null
-  report.forEach((stat) => {
-    if (found == null && stat.type === 'inbound-rtp' && stat.kind === 'video')
-      found = stat as InboundStat
-  })
-  return found
-}
-
 /** The bubble's own video element, measured on screen. */
 function drawnSize(castId: string): string {
-  const host = document.getElementById('tabbies-host')
-  const videos = Array.from(host?.shadowRoot?.querySelectorAll('video') ?? [])
+  const videos = Array.from(hostShadowRoot()?.querySelectorAll('video') ?? [])
   const video = videos.find(el => el.srcObject === streams.value[castId])
   if (!video)
     return '-'

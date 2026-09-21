@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Cast } from '@/shared/types'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { GAP, HEADER_H, MAX_TILE, MIN_TILE, useBubbleLayout } from '../composables/useBubbleLayout'
+import { MAX_TILE, MIN_TILE } from '@/shared/types'
+import { GAP, HEADER_H, useBubbleLayout } from '../composables/useBubbleLayout'
 import { clampTop, EDGE_MARGIN, nearestSide } from '../composables/useDock'
 import { useDrag } from '../composables/useDrag'
 import { usePageInk } from '../composables/usePageInk'

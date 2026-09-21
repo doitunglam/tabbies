@@ -1,14 +1,8 @@
-import type { CaptureReply } from '@/shared/messages'
+import type { CaptureReply, StartResult } from '@/shared/messages'
 import type { Cast } from '@/shared/types'
 import { sendMessage } from '@/shared/messages'
 import { closeOffscreenIfIdle, ensureOffscreen } from './offscreen'
 import { getState, mutate } from './state'
-
-export interface StartResult {
-  ok: boolean
-  error?: string
-  cast?: Cast
-}
 
 /** Pages Chrome refuses to capture, so the failure can be explained up front. */
 const BLOCKED = /^(?:chrome|edge|about|devtools|chrome-extension|chrome-untrusted):|^https:\/\/chromewebstore\.google\.com\//

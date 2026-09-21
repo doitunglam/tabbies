@@ -2,8 +2,9 @@ import type { Ref } from 'vue'
 import type { Ink } from './useTileInk'
 import { onBeforeUnmount, ref, watchEffect } from 'vue'
 import { traced } from '@/shared/perf'
-import { nextInk } from './useTileInk'
+import { HOST_ID } from '../host'
 import { HEADER_H } from './useBubbleLayout'
+import { nextInk } from './useTileInk'
 
 /**
  * Picks readable ink for the bar above the bubble.
@@ -65,7 +66,7 @@ export function usePageInk(root: Ref<HTMLElement | null>, active: Ref<boolean>) 
 function backdropLuma(x: number, y: number): number {
   for (const el of document.elementsFromPoint(x, y)) {
     // Our own host is in the way of every sample.
-    if (el.id === 'tabbies-host')
+    if (el.id === HOST_ID)
       continue
     const colour = parseRgb(getComputedStyle(el).backgroundColor)
     // Anything see-through lets the element behind it decide instead.

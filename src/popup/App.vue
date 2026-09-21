@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import type { HelloReply, Message } from '@/shared/messages'
+import type { HelloReply, PopupMessage, StartResult } from '@/shared/messages'
 import type { AppState } from '@/shared/types'
 import { onMounted, ref } from 'vue'
-import { sendMessage } from '@/shared/messages'
-import { DEFAULT_LAYOUT } from '@/shared/types'
-import type { StartResult } from '@/background/casts'
+import { fromThisExtension, sendMessage } from '@/shared/messages'
+import { defaultLayout } from '@/shared/types'
 
-const state = ref<AppState>({ casts: [], layout: { ...DEFAULT_LAYOUT }, activeTabId: null })
+const state = ref<AppState>({ casts: [], layout: defaultLayout(), activeTabId: null })
 const starting = ref(false)
 const error = ref<string | null>(null)
 
@@ -22,8 +21,8 @@ onMounted(async () => {
     state.value = reply.state
 })
 
-chrome.runtime.onMessage.addListener((message: Message) => {
-  if (message?.to === 'popup' && message.type === 'STATE')
+chrome.runtime.onMessage.addListener((message: PopupMessage, sender) => {
+  if (fromThisExtension(sender) && message?.to === 'popup' && message.type === 'STATE')
     state.value = message.state
 })
 

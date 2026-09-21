@@ -1,4 +1,4 @@
-import type { AppState, LayoutState } from './types'
+import type { AppState, Cast, LayoutState } from './types'
 
 export type SignalPayload =
   | { kind: 'offer' | 'answer', sdp: { type: RTCSdpType, sdp?: string } }
@@ -45,6 +45,25 @@ export interface HelloReply {
 export interface CaptureReply {
   ok: boolean
   error?: string
+}
+
+/** Reply to `START_CAST`; `error` is a key the popup turns into a sentence. */
+export interface StartResult {
+  ok: boolean
+  error?: string
+  cast?: Cast
+}
+
+/**
+ * Only this extension's own contexts may be obeyed.
+ *
+ * Manifest V3 keeps pages out of `onMessage` (they would arrive on
+ * `onMessageExternal`, which is not wired up here), but the check is one line
+ * and it keeps a second extension - or a stray `externally_connectable` entry
+ * added later - from driving the cast registry.
+ */
+export function fromThisExtension(sender: chrome.runtime.MessageSender): boolean {
+  return sender.id === chrome.runtime.id
 }
 
 /** Session descriptions are not structured-cloneable; messaging needs the plain pair. */

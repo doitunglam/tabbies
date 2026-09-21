@@ -1,6 +1,7 @@
-import type { HelloReply, Message } from '@/shared/messages'
+import type { HelloReply, ContentMessage } from '@/shared/messages'
 import { createApp } from 'vue'
-import { sendMessage } from '@/shared/messages'
+import { fromThisExtension, sendMessage } from '@/shared/messages'
+import { createHost } from './host'
 import css from './overlay.css?inline'
 import { installStatsConsole } from './stats'
 import { applyState, state } from './state'
@@ -12,21 +13,7 @@ if (window.top === window)
   mount()
 
 function mount() {
-  const host = document.createElement('div')
-  host.id = 'tabbies-host'
-  // The host takes no space and inherits nothing; the overlay inside is
-  // fixed-positioned. The z-index is the highest a page can name, so nothing
-  // the page stacks normally can cover the bubble.
-  host.style.cssText = 'all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;'
-
-  // A shadow root keeps the host page's CSS out and ours in.
-  const shadow = host.attachShadow({ mode: 'open' })
-  const style = document.createElement('style')
-  style.textContent = css
-  shadow.appendChild(style)
-
-  const mountPoint = document.createElement('div')
-  shadow.appendChild(mountPoint)
+  const { host, mountPoint } = createHost(css)
   document.documentElement.appendChild(host)
   raiseToTopLayer(host)
 
@@ -35,9 +22,9 @@ function mount() {
   trackTileSize()
   installStatsConsole()
 
-  chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
-    if (message?.to !== 'content')
-      return undefined
+  chrome.runtime.onMessage.addListener((message: ContentMessage, sender, sendResponse) => {
+    if (!fromThisExtension(sender) || message?.to !== 'content')
+      return false
 
     switch (message.type) {
       case 'STATE':
@@ -48,8 +35,9 @@ function mount() {
         void handleSignal(message.castId, message.payload)
         break
     }
+    // Answered synchronously, so the channel closes with this return.
     sendResponse({ ok: true })
-    return true
+    return false
   })
 
   void hello()

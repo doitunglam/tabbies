@@ -57,6 +57,22 @@ function round(value: number): number {
 }
 
 /**
+ * First video entry of one kind in a peer connection's report.
+ *
+ * `RTCStatsReport` is a map-like with no `find`, and the entries are untyped,
+ * so both stats consoles need the same walk to reach the one row they read.
+ */
+export async function videoStat<T>(pc: RTCPeerConnection, type: 'inbound-rtp' | 'outbound-rtp'): Promise<T | null> {
+  const report = await pc.getStats()
+  let found: T | null = null
+  report.forEach((stat) => {
+    if (found == null && stat.type === type && stat.kind === 'video')
+      found = stat as T
+  })
+  return found
+}
+
+/**
  * Turns the running counters WebRTC reports into per-second rates.
  *
  * Every `getStats` figure is a total since the connection opened, so a table

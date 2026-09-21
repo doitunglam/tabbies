@@ -1,6 +1,6 @@
-import type { HelloReply, Message, SwMessage } from '@/shared/messages'
-import type { LayoutState } from '@/shared/types'
-import { sendMessage, sendToTab } from '@/shared/messages'
+import type { HelloReply, SwMessage } from '@/shared/messages'
+import { fromThisExtension, sendMessage, sendToTab } from '@/shared/messages'
+import { sanitizeLayoutPatch } from '@/shared/types'
 import { removeCast, renameCast, startCast } from './casts'
 import { refreshActiveTab, watchActiveTab } from './focus'
 import { clearState, getState, mutate } from './state'
@@ -10,9 +10,9 @@ import { clearState, getState, mutate } from './state'
  * the content scripts and the offscreen hub, which cannot address each other
  * directly, and keeps the shared state in step.
  */
-chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
-  if (message?.to !== 'sw')
-    return undefined
+chrome.runtime.onMessage.addListener((message: SwMessage, sender, sendResponse) => {
+  if (!fromThisExtension(sender) || message?.to !== 'sw')
+    return false
 
   const senderTabId = sender.tab?.id ?? null
 
@@ -45,6 +45,12 @@ async function handle(
       return
     }
     case 'START_CAST': {
+      // Casting is the popup's to start: it is the click that grants the
+      // capture permission, and it is the only sender with no tab of its own.
+      if (senderTabId != null) {
+        sendResponse({ ok: false, error: 'not-allowed' })
+        return
+      }
       await refreshActiveTab()
       sendResponse(await startCast())
       return
@@ -61,8 +67,9 @@ async function handle(
       return
     }
     case 'UPDATE_LAYOUT': {
+      const patch = sanitizeLayoutPatch(message.patch)
       await mutate((state) => {
-        Object.assign(state.layout, message.patch as Partial<LayoutState>)
+        Object.assign(state.layout, patch)
       })
       sendResponse({ ok: true })
       return

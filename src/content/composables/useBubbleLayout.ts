@@ -10,9 +10,6 @@ import { clampTop, dockedLeft, EDGE_MARGIN, useViewport } from './useDock'
 export const GAP = 10
 export const HEADER_H = 28
 
-export const MIN_TILE = { w: 160, h: 90 }
-export const MAX_TILE = { w: 900, h: 700 }
-
 export function useBubbleLayout() {
   const viewport = useViewport()
   const layout = computed(() => state.layout)

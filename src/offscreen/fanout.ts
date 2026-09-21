@@ -33,8 +33,16 @@ export async function createOffer(castId: string, viewerTabId: number, width: nu
 
   const pc = new RTCPeerConnection({ iceServers: [] })
   peers.set(key(castId, viewerTabId), pc)
-  for (const track of capture.stream.getTracks())
-    senders.set(key(castId, viewerTabId), pc.addTrack(track, capture.stream))
+
+  // A tab capture is video-only, and the one video sender is what gets scaled
+  // per viewer - a map keyed by (cast, viewer) could not hold more than one.
+  const track = capture.stream.getVideoTracks()[0]
+  if (!track) {
+    pc.close()
+    peers.delete(key(castId, viewerTabId))
+    return
+  }
+  senders.set(key(castId, viewerTabId), pc.addTrack(track, capture.stream))
   await setViewerSize(castId, viewerTabId, width)
 
   pc.onicecandidate = (event) => {

@@ -1,12 +1,12 @@
 import type { AppState, Cast, LayoutState } from '@/shared/types'
 import { computed, reactive } from 'vue'
 import { sendMessage } from '@/shared/messages'
-import { DEFAULT_LAYOUT } from '@/shared/types'
+import { defaultLayout } from '@/shared/types'
 
 /** This tab's mirror of the service worker's state. */
 export const state = reactive({
   casts: [] as Cast[],
-  layout: { ...DEFAULT_LAYOUT } as LayoutState,
+  layout: defaultLayout(),
   tabId: null as number | null,
   /** The tab the user is looking at, as reported by the service worker. */
   activeTabId: null as number | null,
