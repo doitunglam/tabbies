@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import type { Ink } from './useTileInk'
 import { onBeforeUnmount, ref, watchEffect } from 'vue'
+import { traced } from '@/shared/perf'
 import { nextInk } from './useTileInk'
 import { HEADER_H } from './useBubbleLayout'
 
@@ -30,11 +31,13 @@ export function usePageInk(root: Ref<HTMLElement | null>, active: Ref<boolean>) 
     if (!box.width)
       return
 
-    const y = box.top + HEADER_H / 2
-    let sum = 0
-    for (const at of POINTS)
-      sum += backdropLuma(box.left + box.width * at, y)
-    ink.value = nextInk(ink.value, sum / POINTS.length)
+    traced('page-ink', () => {
+      const y = box.top + HEADER_H / 2
+      let sum = 0
+      for (const at of POINTS)
+        sum += backdropLuma(box.left + box.width * at, y)
+      ink.value = nextInk(ink.value, sum / POINTS.length)
+    })
   }
 
   watchEffect(() => {

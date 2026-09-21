@@ -1,7 +1,8 @@
 import type { Message, OffscreenMessage } from '@/shared/messages'
 import { sendMessage } from '@/shared/messages'
 import { startCapture, stopCapture } from './captures'
-import { createOffer, dropCast, dropPeer, dropViewer, flushPending, handleSignal } from './fanout'
+import { createOffer, dropCast, dropPeer, dropViewer, flushPending, handleSignal, setViewerSize } from './fanout'
+import { installStatsConsole } from './stats'
 
 /**
  * Media plane. Owns every captured stream and one peer connection per viewer,
@@ -17,6 +18,8 @@ async function beginCast(castId: string, streamId: string): Promise<{ ok: true }
   await flushPending(castId)
   return { ok: true }
 }
+
+installStatsConsole()
 
 function endCast(castId: string): void {
   stopCapture(castId)
@@ -53,7 +56,10 @@ async function handle(message: OffscreenMessage, sendResponse: (response: unknow
       dropViewer(message.tabId)
       break
     case 'CREATE_OFFER':
-      await createOffer(message.castId, message.viewerTabId)
+      await createOffer(message.castId, message.viewerTabId, message.width)
+      break
+    case 'VIEWER_SIZE':
+      await setViewerSize(message.castId, message.viewerTabId, message.width)
       break
     case 'DROP_PEER':
       dropPeer(message.castId, message.viewerTabId)

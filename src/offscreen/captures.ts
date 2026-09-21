@@ -1,3 +1,5 @@
+import { CEILING } from './quality'
+
 export interface Capture {
   stream: MediaStream
   video: HTMLVideoElement
@@ -7,6 +9,9 @@ export interface Capture {
 const captures = new Map<string, Capture>()
 
 export const getCapture = (castId: string) => captures.get(castId)
+
+/** For the stats console; nothing in the media path reads this. */
+export const captureEntries = () => [...captures.entries()]
 
 /**
  * Redeems a `chrome.tabCapture` stream id and keeps the resulting stream.
@@ -23,6 +28,9 @@ export async function startCapture(castId: string, streamId: string, onEnded: ()
       mandatory: {
         chromeMediaSource: 'tab',
         chromeMediaSourceId: streamId,
+        maxWidth: CEILING.width,
+        maxHeight: CEILING.height,
+        maxFrameRate: CEILING.frameRate,
       },
     },
   } as MediaStreamConstraints)

@@ -11,7 +11,8 @@ export type SwMessage =
   | { to: 'sw', type: 'STOP_CAST', castId: string }
   | { to: 'sw', type: 'UPDATE_LAYOUT', patch: Partial<LayoutState> }
   | { to: 'sw', type: 'CAST_ENDED', castId: string }
-  | { to: 'sw', type: 'REQUEST_OFFER', castId: string }
+  | { to: 'sw', type: 'REQUEST_OFFER', castId: string, width: number }
+  | { to: 'sw', type: 'VIEWER_SIZE', castId: string, width: number }
   | { to: 'sw', type: 'DROP_PEER', castId: string }
   | { to: 'sw', type: 'SIGNAL', castId: string, viewerTabId?: number, payload: SignalPayload }
 
@@ -20,7 +21,8 @@ export type OffscreenMessage =
   | { to: 'offscreen', type: 'START_CAPTURE', castId: string, streamId: string }
   | { to: 'offscreen', type: 'STOP_CAPTURE', castId: string }
   | { to: 'offscreen', type: 'VIEWER_GONE', tabId: number }
-  | { to: 'offscreen', type: 'CREATE_OFFER', castId: string, viewerTabId: number }
+  | { to: 'offscreen', type: 'CREATE_OFFER', castId: string, viewerTabId: number, width: number }
+  | { to: 'offscreen', type: 'VIEWER_SIZE', castId: string, viewerTabId: number, width: number }
   | { to: 'offscreen', type: 'DROP_PEER', castId: string, viewerTabId: number }
   | { to: 'offscreen', type: 'SIGNAL', castId: string, viewerTabId: number, payload: SignalPayload }
 

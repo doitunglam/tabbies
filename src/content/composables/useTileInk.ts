@@ -1,5 +1,6 @@
 import type { Ref } from 'vue'
 import { onBeforeUnmount, ref, watchEffect } from 'vue'
+import { traced } from '@/shared/perf'
 
 /**
  * Picks readable ink for the controls painted over a stream.
@@ -15,8 +16,8 @@ const SAMPLE_MS = 600
 /** Relative luminance of the tile's own background, behind letterbox bars. */
 const BACKDROP = 0.06
 /** Ink flips at these luminances; the gap in between stops it flickering. */
-export const TO_DARK = 0.6
-export const TO_LIGHT = 0.45
+const TO_DARK = 0.6
+const TO_LIGHT = 0.45
 
 export type Ink = 'light' | 'dark'
 
@@ -36,11 +37,13 @@ export function useTileInk(video: Ref<HTMLVideoElement | null>, active: Ref<bool
     const el = video.value
     if (!el)
       return
-    for (const [band, ink] of [['top', top], ['middle', middle], ['bottom', bottom]] as const) {
-      const luma = bandLuma(el, band)
-      if (luma != null)
-        ink.value = nextInk(ink.value, luma)
-    }
+    traced('tile-ink', () => {
+      for (const [band, ink] of [['top', top], ['middle', middle], ['bottom', bottom]] as const) {
+        const luma = bandLuma(el, band)
+        if (luma != null)
+          ink.value = nextInk(ink.value, luma)
+      }
+    })
   }
 
   watchEffect(() => {

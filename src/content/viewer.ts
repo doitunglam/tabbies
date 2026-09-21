@@ -1,7 +1,7 @@
 import type { SignalPayload } from '@/shared/messages'
 import { markRaw, ref, watch } from 'vue'
 import { sdpInit, sendMessage } from '@/shared/messages'
-import { isActive, visibleCasts } from './state'
+import { isActive, state, visibleCasts } from './state'
 
 interface Peer {
   pc: RTCPeerConnection
@@ -14,6 +14,10 @@ const peers = new Map<string, Peer>()
 
 /** Remote streams, kept raw - Vue proxies are rejected by `video.srcObject`. */
 export const streams = ref<Record<string, MediaStream>>({})
+
+/** For the stats console; nothing in the media path reads this. */
+export const peerConnections = (): [string, RTCPeerConnection][] =>
+  [...peers.entries()].map(([castId, peer]) => [castId, peer.pc])
 
 /**
  * How long a tab may stay in the background before its streams are dropped.
@@ -81,7 +85,7 @@ function ensurePeer(castId: string): void {
   }
 
   // The hub answers with an offer; it owns the media, so it leads.
-  void sendMessage({ to: 'sw', type: 'REQUEST_OFFER', castId })
+  void sendMessage({ to: 'sw', type: 'REQUEST_OFFER', castId, width: tileWidth() })
 }
 
 function dropPeer(castId: string): void {
@@ -99,6 +103,19 @@ function dropPeer(castId: string): void {
   // Let the hub tear down its half (this tab turned out to be the source, or
   // the cast is gone).
   void sendMessage({ to: 'sw', type: 'DROP_PEER', castId })
+}
+
+/** The bubble's width in the pixels a screen actually has. */
+function tileWidth(): number {
+  return Math.round(state.layout.tileW * (window.devicePixelRatio || 1))
+}
+
+/** Follow a resize: the hub scales what it sends to whatever is on screen. */
+export function trackTileSize(): void {
+  watch(() => state.layout.tileW, () => {
+    for (const castId of peers.keys())
+      void sendMessage({ to: 'sw', type: 'VIEWER_SIZE', castId, width: tileWidth() })
+  })
 }
 
 export async function handleSignal(castId: string, payload: SignalPayload): Promise<void> {

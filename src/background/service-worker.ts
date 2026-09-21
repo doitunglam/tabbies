@@ -69,7 +69,13 @@ async function handle(
     }
     case 'REQUEST_OFFER': {
       if (senderTabId != null)
-        await sendMessage({ to: 'offscreen', type: 'CREATE_OFFER', castId: message.castId, viewerTabId: senderTabId })
+        await sendMessage({ to: 'offscreen', type: 'CREATE_OFFER', castId: message.castId, viewerTabId: senderTabId, width: message.width })
+      sendResponse({ ok: true })
+      return
+    }
+    case 'VIEWER_SIZE': {
+      if (senderTabId != null)
+        await sendMessage({ to: 'offscreen', type: 'VIEWER_SIZE', castId: message.castId, viewerTabId: senderTabId, width: message.width })
       sendResponse({ ok: true })
       return
     }

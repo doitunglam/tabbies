@@ -2,8 +2,9 @@ import type { HelloReply, Message } from '@/shared/messages'
 import { createApp } from 'vue'
 import { sendMessage } from '@/shared/messages'
 import css from './overlay.css?inline'
+import { installStatsConsole } from './stats'
 import { applyState, state } from './state'
-import { handleSignal, pauseWhileInactive, syncPeers } from './viewer'
+import { handleSignal, pauseWhileInactive, syncPeers, trackTileSize } from './viewer'
 import Overlay from './views/Overlay.vue'
 
 // Overlays belong to the top-level document only.
@@ -31,6 +32,8 @@ function mount() {
 
   createApp(Overlay).mount(mountPoint)
   pauseWhileInactive()
+  trackTileSize()
+  installStatsConsole()
 
   chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
     if (message?.to !== 'content')

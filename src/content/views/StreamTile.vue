@@ -3,10 +3,7 @@ import type { Cast, DockSide } from '@/shared/types'
 import { computed, ref, watchEffect } from 'vue'
 import { useTileInk } from '../composables/useTileInk'
 
-const props = withDefaults(
-  defineProps<{ cast: Cast, stream?: MediaStream, side: DockSide, closable?: boolean }>(),
-  { closable: true },
-)
+const props = defineProps<{ cast: Cast, stream?: MediaStream, side: DockSide }>()
 
 defineEmits<{ close: [] }>()
 
@@ -40,7 +37,6 @@ watchEffect(() => {
     <div class="tb-controls" :class="{ 'tb-controls--left': side === 'left' }">
       <span class="tb-label">{{ cast.label }}</span>
       <button
-        v-if="closable"
         class="tb-btn tb-close"
         title="Stop casting"
         @pointerdown.stop

@@ -1,6 +1,7 @@
 import type { SignalPayload } from '@/shared/messages'
 import { sdpInit, sendMessage } from '@/shared/messages'
 import { getCapture } from './captures'
+import { MAX_FPS, MAX_SCALE } from './quality'
 
 /**
  * One peer connection per (cast, viewer tab). A MediaStream cannot be messaged
@@ -9,16 +10,21 @@ import { getCapture } from './captures'
  */
 const peers = new Map<string, RTCPeerConnection>()
 /** Viewers that asked for an offer before the capture was ready. */
-const pending = new Map<string, Set<number>>()
+const pending = new Map<string, Map<number, number>>()
+/** The sender feeding each viewer, so its scaling can be retuned later. */
+const senders = new Map<string, RTCRtpSender>()
 
 const key = (castId: string, tabId: number) => `${castId}|${tabId}`
 
-export async function createOffer(castId: string, viewerTabId: number): Promise<void> {
+/** For the stats console; nothing in the media path reads this. */
+export const peerEntries = () => [...peers.entries()]
+
+export async function createOffer(castId: string, viewerTabId: number, width: number): Promise<void> {
   const capture = getCapture(castId)
   if (!capture) {
     // Capture is still starting up; replay once the stream exists.
-    const waiting = pending.get(castId) ?? new Set<number>()
-    waiting.add(viewerTabId)
+    const waiting = pending.get(castId) ?? new Map<number, number>()
+    waiting.set(viewerTabId, width)
     pending.set(castId, waiting)
     return
   }
@@ -27,7 +33,9 @@ export async function createOffer(castId: string, viewerTabId: number): Promise<
 
   const pc = new RTCPeerConnection({ iceServers: [] })
   peers.set(key(castId, viewerTabId), pc)
-  capture.stream.getTracks().forEach(track => pc.addTrack(track, capture.stream))
+  for (const track of capture.stream.getTracks())
+    senders.set(key(castId, viewerTabId), pc.addTrack(track, capture.stream))
+  await setViewerSize(castId, viewerTabId, width)
 
   pc.onicecandidate = (event) => {
     if (event.candidate)
@@ -40,6 +48,9 @@ export async function createOffer(castId: string, viewerTabId: number): Promise<
 
   const offer = await pc.createOffer()
   await pc.setLocalDescription(offer)
+  // Again now the sender really has parameters: before negotiation Chrome can
+  // refuse them outright.
+  await setViewerSize(castId, viewerTabId, width)
   await signal(castId, viewerTabId, { kind: 'offer', sdp: sdpInit(offer) })
 }
 
@@ -47,8 +58,32 @@ export async function createOffer(castId: string, viewerTabId: number): Promise<
 export async function flushPending(castId: string): Promise<void> {
   const waiting = pending.get(castId)
   pending.delete(castId)
-  for (const tabId of waiting ?? [])
-    await createOffer(castId, tabId)
+  for (const [tabId, width] of waiting ?? [])
+    await createOffer(castId, tabId, width)
+}
+
+/**
+ * Encode for the size the bubble is actually drawn at.
+ *
+ * One sender per viewer means each can be scaled on its own, and a bubble
+ * showing 320 device pixels has no use for a 1280-wide frame: the pixels cost
+ * the same to encode, send and decode whether or not anything can see them.
+ * `setParameters` needs no renegotiation, so this can follow a resize live.
+ */
+export async function setViewerSize(castId: string, viewerTabId: number, width: number): Promise<void> {
+  const sender = senders.get(key(castId, viewerTabId))
+  const source = sender?.track?.getSettings().width
+  if (!sender || !source)
+    return
+
+  const parameters = sender.getParameters()
+  // Chrome hands back an empty list until the first negotiation.
+  if (!parameters.encodings?.length)
+    parameters.encodings = [{}]
+  // Never upscale, and never past the point where the picture is unreadable.
+  parameters.encodings[0].scaleResolutionDownBy = Math.min(MAX_SCALE, Math.max(1, source / Math.max(width, 120)))
+  parameters.encodings[0].maxFramerate = MAX_FPS
+  await sender.setParameters(parameters).catch(() => {})
 }
 
 export async function handleSignal(castId: string, viewerTabId: number, payload: SignalPayload): Promise<void> {
@@ -64,6 +99,7 @@ export async function handleSignal(castId: string, viewerTabId: number, payload:
 export function dropPeer(castId: string, viewerTabId: number): void {
   peers.get(key(castId, viewerTabId))?.close()
   peers.delete(key(castId, viewerTabId))
+  senders.delete(key(castId, viewerTabId))
   pending.get(castId)?.delete(viewerTabId)
 }
 
@@ -74,6 +110,7 @@ export function dropCast(castId: string): void {
     if (entry.startsWith(`${castId}|`)) {
       pc.close()
       peers.delete(entry)
+      senders.delete(entry)
     }
   }
 }
@@ -84,6 +121,7 @@ export function dropViewer(tabId: number): void {
     if (entry.endsWith(`|${tabId}`)) {
       pc.close()
       peers.delete(entry)
+      senders.delete(entry)
     }
   }
   for (const waiting of pending.values())

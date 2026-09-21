@@ -83,6 +83,33 @@ The overlay host sits at the maximum z-index, and is also lifted into the top la
 popover, so a page's own modal dialogs and popovers cannot cover the bubble either. The popover is
 only kept if it opened: a closed one is hidden by a UA rule that inline styles cannot override.
 
+## Measuring it
+
+The hub encodes one copy of every stream per viewer, so that is where the CPU goes. Both halves
+publish their numbers on `globalThis` rather than logging all the time.
+
+Hub - `chrome://extensions` -> **Inspect views: offscreen.html**:
+
+```js
+const stop = tabbies.watch()   // a table a second: captured size, sent size, fps, encode ms/frame
+stop()
+tabbies.heap()                 // JS heap only; video buffers live outside it
+```
+
+Viewer - DevTools on any tab showing a bubble, with **tabbies** picked in the console's context
+dropdown (the content script runs in its own world):
+
+```js
+tabbies.watch()                // received size vs the size it is shown at, decode ms/frame
+tabbies.trace(true)            // stopwatch on the ink samplers
+tabbies.trace()                // ... read it back: calls, total, average, worst
+tabbies.trace(false)
+```
+
+`captured` far larger than `shown` means the tab is being encoded at its own resolution and thrown
+away in a 320x180 tile. `limited by: cpu` in the hub table means the encoder is already the
+bottleneck.
+
 ## Development
 
 ```bash
