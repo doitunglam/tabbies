@@ -1,0 +1,202 @@
+/*
+ * Every overlay style lives here. It is imported with `?inline` and injected
+ * into the shadow root - Vue's `scoped` styles would land in the host page's
+ * <head> instead, where they would not reach our shadow DOM.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.tb-root {
+  position: fixed;
+  z-index: 2147483646;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #fff;
+  line-height: 1.3;
+  user-select: none;
+  touch-action: none;
+}
+
+/* ------------------------------------------------------------- stacked */
+
+.tb-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.tb-card {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.25, 1);
+  cursor: grab;
+}
+
+.tb-card:active {
+  cursor: grabbing;
+}
+
+.tb-card--behind {
+  filter: brightness(0.7);
+}
+
+/* ------------------------------------------------------------ expanded */
+
+.tb-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.tb-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6e8ee;
+  cursor: grab;
+}
+
+.tb-header:active {
+  cursor: grabbing;
+}
+
+.tb-header-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+}
+
+.tb-grid {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+}
+
+/* ---------------------------------------------------------------- tile */
+
+.tb-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #101214;
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.35),
+    0 2px 6px rgb(0 0 0 / 0.25);
+}
+
+.tb-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #101214;
+  pointer-events: none;
+}
+
+.tb-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #9aa1ad;
+}
+
+/* Controls stay out of the way until the pointer is over the tile. */
+.tb-controls {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.65), transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tb-tile:hover .tb-controls,
+.tb-tile:focus-within .tb-controls {
+  opacity: 1;
+}
+
+.tb-label {
+  flex: 1;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  cursor: pointer;
+  background: rgb(255 255 255 / 0.16);
+  border: none;
+  border-radius: 6px;
+}
+
+.tb-btn:hover {
+  background: rgb(255 255 255 / 0.3);
+}
+
+/* Bottom-right resize grip, same reveal-on-hover rule as the controls. */
+.tb-grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tb-grip::after {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 10px;
+  height: 10px;
+  content: "";
+  border-right: 2px solid rgb(255 255 255 / 0.8);
+  border-bottom: 2px solid rgb(255 255 255 / 0.8);
+  border-bottom-right-radius: 3px;
+}
+
+.tb-tile:hover .tb-grip,
+.tb-root:hover .tb-grip {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------- probe */
+
+.tb-probe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+}
