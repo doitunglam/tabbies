@@ -1,4 +1,3 @@
-import type { Rgb } from '@/shared/messages'
 import type { AppState, Cast, LayoutState } from '@/shared/types'
 import { computed, reactive } from 'vue'
 import { sendMessage } from '@/shared/messages'
@@ -9,14 +8,34 @@ export const state = reactive({
   casts: [] as Cast[],
   layout: { ...DEFAULT_LAYOUT } as LayoutState,
   tabId: null as number | null,
-  /** Set while the source probe paints; the overlay hides itself meanwhile. */
-  probeColor: null as Rgb | null,
+  /** Whether the user can actually see this tab right now. */
+  visible: !document.hidden,
 })
 
-/** Every cast except one originating from this very tab. */
-export const visibleCasts = computed(() =>
-  state.casts.filter(c => c.sourceTabId == null || c.sourceTabId !== state.tabId),
-)
+/** Publish this tab's visibility; the overlay and the viewer both key off it. */
+export function watchVisibility(): void {
+  document.addEventListener('visibilitychange', () => {
+    state.visible = !document.hidden
+  })
+}
+
+/** This tab is itself one of the tabs being cast. */
+const casting = computed(() => state.casts.some(c => c.sourceTabId === state.tabId))
+
+/**
+ * Every cast except the one captured from this very tab - and nothing at all
+ * while a casting tab is in the background.
+ *
+ * A tab keeps being captured after you leave it, so any bubble drawn there
+ * reappears inside the other tabs' streams. With two tabs casting each other
+ * that nests forever, a hall of mirrors. Only the tab in front of the user
+ * draws bubbles, so the cycle can never close.
+ */
+export const visibleCasts = computed(() => {
+  if (casting.value && !state.visible)
+    return []
+  return state.casts.filter(c => c.sourceTabId !== state.tabId)
+})
 
 export const activeCast = computed(() => {
   const list = visibleCasts.value

@@ -1,7 +1,7 @@
 import type { SignalPayload } from '@/shared/messages'
-import { markRaw, ref } from 'vue'
+import { markRaw, ref, watch } from 'vue'
 import { sdpInit, sendMessage } from '@/shared/messages'
-import { visibleCasts } from './state'
+import { state, visibleCasts } from './state'
 
 interface Peer {
   pc: RTCPeerConnection
@@ -15,9 +15,42 @@ const peers = new Map<string, Peer>()
 /** Remote streams, kept raw - Vue proxies are rejected by `video.srcObject`. */
 export const streams = ref<Record<string, MediaStream>>({})
 
+/**
+ * How long a tab may stay hidden before its streams are dropped. Flicking
+ * through tabs should not tear down and rebuild connections on the way past.
+ */
+const HIDE_GRACE_MS = 1500
+let hideTimer: ReturnType<typeof setTimeout> | null = null
+
+/** Backgrounded tabs draw nothing, so they are not worth encoding frames for. */
+const paused = () => !state.visible && hideTimer === null
+
+/**
+ * Drop this tab's streams while it is in the background and pick them up again
+ * when it comes back. Every open tab holds a peer connection per cast
+ * otherwise, and the hub encodes a separate copy of the video for each one.
+ */
+export function pauseWhileHidden(): void {
+  watch(() => state.visible, (visible) => {
+    if (hideTimer) {
+      clearTimeout(hideTimer)
+      hideTimer = null
+    }
+    if (visible) {
+      syncPeers()
+    }
+    else {
+      hideTimer = setTimeout(() => {
+        hideTimer = null
+        syncPeers()
+      }, HIDE_GRACE_MS)
+    }
+  })
+}
+
 /** Open a connection for every cast this tab should show, and close the rest. */
 export function syncPeers(): void {
-  const wanted = new Set(visibleCasts.value.map(c => c.id))
+  const wanted = new Set(paused() ? [] : visibleCasts.value.map(c => c.id))
   for (const castId of peers.keys()) {
     if (!wanted.has(castId))
       dropPeer(castId)

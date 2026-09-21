@@ -1,7 +1,5 @@
 import type { AppState, LayoutState } from './types'
 
-export type Rgb = [number, number, number]
-
 export type SignalPayload =
   | { kind: 'offer' | 'answer', sdp: { type: RTCSdpType, sdp?: string } }
   | { kind: 'ice', candidate: RTCIceCandidateInit }
@@ -15,13 +13,11 @@ export type SwMessage =
   | { to: 'sw', type: 'CAST_ENDED', castId: string }
   | { to: 'sw', type: 'REQUEST_OFFER', castId: string }
   | { to: 'sw', type: 'DROP_PEER', castId: string }
-  | { to: 'sw', type: 'RUN_PROBE' }
-  | { to: 'sw', type: 'PROBE_DONE', castId: string, sourceTabId: number | null }
   | { to: 'sw', type: 'SIGNAL', castId: string, viewerTabId?: number, payload: SignalPayload }
 
 /** Messages handled by the offscreen document. */
 export type OffscreenMessage =
-  | { to: 'offscreen', type: 'PICK_AND_CAPTURE', castId: string }
+  | { to: 'offscreen', type: 'START_CAPTURE', castId: string, streamId: string }
   | { to: 'offscreen', type: 'STOP_CAPTURE', castId: string }
   | { to: 'offscreen', type: 'VIEWER_GONE', tabId: number }
   | { to: 'offscreen', type: 'CREATE_OFFER', castId: string, viewerTabId: number }
@@ -32,7 +28,6 @@ export type OffscreenMessage =
 export type ContentMessage =
   | { to: 'content', type: 'STATE', state: AppState }
   | { to: 'content', type: 'SIGNAL', castId: string, payload: SignalPayload }
-  | { to: 'content', type: 'PROBE_PAINT', color: Rgb | null }
 
 /** Messages handled by the browser action popup. */
 export type PopupMessage =
@@ -45,17 +40,8 @@ export interface HelloReply {
   tabId: number | null
 }
 
-export interface ProbeReply {
-  /** tabId -> swatch colour currently painted in that tab. */
-  colors: Record<number, Rgb>
-}
-
-/** What kind of surface the user picked in Chrome's share dialog. */
-export type Surface = 'browser' | 'window' | 'monitor' | 'unknown'
-
 export interface CaptureReply {
   ok: boolean
-  surface?: Surface
   error?: string
 }
 

@@ -1,23 +1,21 @@
 import type { Message } from '@/shared/messages'
 import { sendMessage } from '@/shared/messages'
-import { probeSource, startCapture, stopCapture } from './captures'
+import { startCapture, stopCapture } from './captures'
 import { createOffer, dropCast, dropPeer, dropViewer, flushPending, handleSignal } from './fanout'
 
 /**
  * Media plane. Owns every captured stream and one peer connection per viewer,
  * and renders nothing - the visible bubbles are drawn by the content scripts.
  */
-async function beginCast(castId: string): Promise<{ ok: true, surface: string }> {
-  const capture = await startCapture(castId, () => {
-    // Chrome stopped the share ("Stop sharing", or the source tab closing), so
-    // the service worker has to hear about it.
+async function beginCast(castId: string, streamId: string): Promise<{ ok: true }> {
+  await startCapture(castId, streamId, () => {
+    // The capture ended on Chrome's side (source tab closed or stopped), so the
+    // service worker has to hear about it.
     endCast(castId)
     void sendMessage({ to: 'sw', type: 'CAST_ENDED', castId })
   })
   await flushPending(castId)
-  // Detached: the caller only waits for the capture itself.
-  void probeSource(castId)
-  return { ok: true, surface: capture.surface }
+  return { ok: true }
 }
 
 function endCast(castId: string): void {
@@ -31,15 +29,13 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
 
   void (async () => {
     switch (message.type) {
-      case 'PICK_AND_CAPTURE':
+      case 'START_CAPTURE':
         try {
-          sendResponse(await beginCast(message.castId))
+          sendResponse(await beginCast(message.castId, message.streamId))
         }
         catch (error) {
           const { name, message: reason } = error as DOMException
-          // NotAllowedError is the user dismissing the share dialog.
-          if (name !== 'NotAllowedError')
-            console.error(`[tabbies] capture failed: ${name}: ${reason}`, error)
+          console.error(`[tabbies] capture failed: ${name}: ${reason}`, error)
           sendResponse({ ok: false, error: name })
         }
         return

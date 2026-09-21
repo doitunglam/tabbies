@@ -14,6 +14,8 @@ defineEmits<{
   dragStart: [event: PointerEvent]
   resizeStart: [event: PointerEvent]
   cardClick: [cast: Cast]
+  flip: []
+  expand: []
   close: [cast: Cast]
 }>()
 
@@ -44,9 +46,37 @@ function cardStyle(index: number) {
         :stream="streams[cast.id]"
         @close="$emit('close', cast)"
       >
+        <!-- Centred actions on the front card: next stream, and open them all. -->
+        <div v-if="cast.id === activeId" class="tb-actions">
+          <button
+            v-if="cards.length > 1"
+            class="tb-action"
+            title="Next stream"
+            @pointerdown.stop
+            @click.stop="$emit('flip')"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M13.2 8a5.2 5.2 0 1 1-1.9-4" />
+              <path d="M13.4 2.4v3h-3" />
+            </svg>
+          </button>
+          <button
+            class="tb-action"
+            title="Show every stream"
+            @pointerdown.stop
+            @click.stop="$emit('expand')"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M6.4 2.8H2.8v3.6M9.6 2.8h3.6v3.6M13.2 9.6v3.6H9.6M2.8 9.6v3.6h3.6" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- The grip hugs the edge the bubble is docked away from. -->
         <div
           v-if="cast.id === activeId"
           class="tb-grip"
+          :class="{ 'tb-grip--left': side === 'right' }"
           @pointerdown.stop="$emit('resizeStart', $event)"
           @click.stop
         />

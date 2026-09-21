@@ -4,8 +4,8 @@ export type DisplayMode = 'stacked' | 'expanded'
 export interface Cast {
   id: string
   label: string
-  /** Tab the stream comes from, resolved by the colour probe. `null` when unknown. */
-  sourceTabId: number | null
+  /** Tab the stream is captured from; its own overlay skips this cast. */
+  sourceTabId: number
   createdAt: number
 }
 

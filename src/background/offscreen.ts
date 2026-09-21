@@ -19,9 +19,9 @@ export async function ensureOffscreen(): Promise<void> {
   }
   creating = chrome.offscreen.createDocument({
     url: OFFSCREEN_PATH,
-    // DISPLAY_MEDIA is what lets the document call getDisplayMedia() without
-    // user activation.
-    reasons: ['DISPLAY_MEDIA'],
+    // USER_MEDIA lets the document redeem a tabCapture stream id through
+    // getUserMedia() without user activation.
+    reasons: ['USER_MEDIA'],
     justification: 'Holds the captured tab streams and relays them to the page overlays.',
   })
   try {

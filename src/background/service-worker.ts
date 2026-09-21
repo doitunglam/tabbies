@@ -1,8 +1,7 @@
 import type { HelloReply, Message } from '@/shared/messages'
 import type { LayoutState } from '@/shared/types'
 import { sendMessage, sendToTab } from '@/shared/messages'
-import { removeCast, startCast } from './casts'
-import { finishProbe, paintSwatches } from './probe'
+import { removeCast, renameCast, startCast } from './casts'
 import { clearState, getState, mutate } from './state'
 
 /**
@@ -69,18 +68,16 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
         sendResponse({ ok: true })
         return
       }
-      case 'RUN_PROBE': {
-        sendResponse(await paintSwatches())
-        return
-      }
-      case 'PROBE_DONE': {
-        await finishProbe(message.castId, message.sourceTabId)
-        sendResponse({ ok: true })
-      }
     }
   })()
 
   return true
+})
+
+// A tab renames itself on navigation, and single-page apps do it as you browse.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.title)
+    void renameCast(tabId, changeInfo.title)
 })
 
 chrome.tabs.onRemoved.addListener((tabId) => {

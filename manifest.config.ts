@@ -28,6 +28,7 @@ export default defineManifest({
   permissions: [
     'offscreen',
     'storage',
+    'tabCapture',
     'tabs',
   ],
 })

@@ -2,8 +2,8 @@ import type { HelloReply, Message } from '@/shared/messages'
 import { createApp } from 'vue'
 import { sendMessage } from '@/shared/messages'
 import css from './overlay.css?inline'
-import { applyState, state } from './state'
-import { handleSignal, syncPeers } from './viewer'
+import { applyState, state, watchVisibility } from './state'
+import { handleSignal, pauseWhileHidden, syncPeers } from './viewer'
 import Overlay from './views/Overlay.vue'
 
 // Overlays belong to the top-level document only.
@@ -13,8 +13,10 @@ if (window.top === window)
 function mount() {
   const host = document.createElement('div')
   host.id = 'tabbies-host'
-  // The host takes no space and inherits nothing; the overlay inside is fixed-positioned.
-  host.style.cssText = 'all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0;'
+  // The host takes no space and inherits nothing; the overlay inside is
+  // fixed-positioned. The z-index is the highest a page can name, so nothing
+  // the page stacks normally can cover the bubble.
+  host.style.cssText = 'all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;'
 
   // A shadow root keeps the host page's CSS out and ours in.
   const shadow = host.attachShadow({ mode: 'open' })
@@ -25,8 +27,11 @@ function mount() {
   const mountPoint = document.createElement('div')
   shadow.appendChild(mountPoint)
   document.documentElement.appendChild(host)
+  raiseToTopLayer(host)
 
   createApp(Overlay).mount(mountPoint)
+  watchVisibility()
+  pauseWhileHidden()
 
   chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
     if (message?.to !== 'content')
@@ -40,16 +45,32 @@ function mount() {
       case 'SIGNAL':
         void handleSignal(message.castId, message.payload)
         break
-      case 'PROBE_PAINT':
-        state.probeColor = message.color
-        break
     }
-    // Acking tells the service worker this tab has a live content script.
     sendResponse({ ok: true })
     return true
   })
 
   void hello()
+}
+
+/**
+ * Lift the host into the top layer, where it sits above every stacking context
+ * on the page - including modal dialogs and popovers, which a z-index alone
+ * cannot beat. A manual popover never light-dismisses, so it stays put.
+ *
+ * Closed popovers are hidden by a UA rule that inline styles cannot override,
+ * so the attribute only goes on if opening really worked.
+ */
+function raiseToTopLayer(host: HTMLElement): void {
+  if (typeof host.showPopover !== 'function')
+    return
+  try {
+    host.setAttribute('popover', 'manual')
+    host.showPopover()
+  }
+  catch {
+    host.removeAttribute('popover')
+  }
 }
 
 /** Announce this tab and pick up whatever is already casting. */

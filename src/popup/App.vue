@@ -4,9 +4,17 @@ import type { AppState } from '@/shared/types'
 import { onMounted, ref } from 'vue'
 import { sendMessage } from '@/shared/messages'
 import { DEFAULT_LAYOUT } from '@/shared/types'
+import type { StartResult } from '@/background/casts'
 
 const state = ref<AppState>({ casts: [], layout: { ...DEFAULT_LAYOUT } })
 const starting = ref(false)
+const error = ref<string | null>(null)
+
+const REASONS: Record<string, string> = {
+  'no-tab': 'No tab to cast.',
+  'blocked-page': 'Chrome will not let extensions capture this page.',
+  'already-casting': 'This tab is already casting.',
+}
 
 onMounted(async () => {
   const reply = await sendMessage<HelloReply>({ to: 'sw', type: 'HELLO' })
@@ -19,11 +27,16 @@ chrome.runtime.onMessage.addListener((message: Message) => {
     state.value = message.state
 })
 
+/**
+ * Casts the tab behind the popup. The capture permission comes from this very
+ * click, so the request has to go out while the popup is open.
+ */
 async function startCast() {
   starting.value = true
-  // The picker steals focus, which closes this popup - the service worker owns
-  // the rest of the flow from here.
-  await sendMessage({ to: 'sw', type: 'START_CAST' })
+  error.value = null
+  const result = await sendMessage<StartResult>({ to: 'sw', type: 'START_CAST' })
+  if (!result?.ok)
+    error.value = REASONS[result?.error ?? ''] ?? 'Could not start casting this tab.'
   starting.value = false
 }
 
@@ -35,11 +48,13 @@ function stopCast(castId: string) {
 
 <template>
   <button class="start" :disabled="starting" @click="startCast">
-    Start casting
+    Cast this tab
   </button>
 
+  <p v-if="error" class="error">{{ error }}</p>
+
   <p v-if="state.casts.length === 0" class="empty">
-    Nothing is casting yet. Pick a tab and it will follow you around as a bubble.
+    Nothing is casting yet. Cast a tab and it will follow you around as a bubble.
   </p>
 
   <ul v-else class="casts">
@@ -70,6 +85,12 @@ function stopCast(castId: string) {
 .start:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.error {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #ffb4b4;
 }
 
 .empty {
